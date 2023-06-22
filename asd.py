@@ -1,806 +1,479 @@
 import tkinter as tk
+from tkinter import messagebox
 import random
 import tkinter.messagebox as messagebox
 import time
+from typing import List, Tuple
 
-BOARD_SIZE = 8
-SQUARE_SIZE = 60
+
+valid_moves = []
+
+# Board Constants
+board_size = 8
+suquare_size = 60
+
+# GUI Constants
 window = tk.Tk()
 window.withdraw()
 menu = tk.Menu(window)
 
-board = [[None] * BOARD_SIZE for _ in range(BOARD_SIZE)]
+# Game State Variables
+board = [[None] * board_size for _ in range(board_size)]
 selected_piece = None
 ai_difficulty = "Easy"
 game_over = False
+
+# Player Colors
 PLAYER_COLOR = "white"
 AI_COLOR = "black"
-PLAYER_KING_COLOR = "pink"
-AI_KING_COLOR = "red"
+PLAYER_KING_COLOR = "green"
+AI_KING_COLOR = "yellow"
 
+# Piece Values
+NORMAL_VALUE = 10
+KING_VALUE = 20
+EDGE_VALUE = 5
+CENTER_VALUE = 3
 
-NORMAL_VALUE = 10  # 普通棋子的价值
-KING_VALUE = 20  # 升王棋子的价值
-EDGE_VALUE = 5  # 边缘棋子的价值
-CENTER_VALUE = 3  # 中心棋子的价值
-
-
-
-# 画出棋盘
-def draw_board():
-    # 清空画布
+def start_board():
+    # Clear the canvas
     canvas.delete("all")
-    # 画出棋盘的方格
-    for row in range(BOARD_SIZE):
-        for col in range(BOARD_SIZE):
-            # 根据行列号计算方格的坐标
-            x1 = col * SQUARE_SIZE
-            y1 = row * SQUARE_SIZE
-            x2 = x1 + SQUARE_SIZE
-            y2 = y1 + SQUARE_SIZE
-            # 如果方格是黑色，就用灰色填充
+    # Draw the squares of the checkerboard
+    for row in range(8):
+        for col in range(8):
+            # Calculate the coordinates of the square based on the row and column numbers
+            x1, y1 = col * 60, row * 60
+            x2, y2 = x1 + 60, y1 + 60
+            # Fill the square with gray if it's a black square
             if (row + col) % 2 == 0:
-                canvas.create_rectangle(x1, y1, x2, y2, fill="gray")
-            # 如果方格有棋子，就画出棋子的颜色和形状
-            if board[row][col] is not None:
-                # 根据棋子的颜色，画出一个圆形
-                if board[row][col] == PLAYER_COLOR:
-                    canvas.create_oval(x1 + 5, y1 + 5, x2 - 5, y2 - 5, fill="white")
-                elif board[row][col] == AI_COLOR:
-                    canvas.create_oval(x1 + 5, y1 + 5, x2 - 5, y2 - 5, fill="black")
-                elif board[row][col] == PLAYER_KING_COLOR:
-                    canvas.create_oval(x1 + 5, y1 + 5, x2 - 5, y2 - 5, fill="pink")
-                elif board[row][col] == AI_KING_COLOR:
-                    canvas.create_oval(x1 + 5, y1 + 5, x2 - 5, y2 - 5, fill="red")
-                # 如果棋子是升王的，就在圆形上画一个差不多的星形
-                if board[row][col] in (PLAYER_KING_COLOR, AI_KING_COLOR):
-                    canvas.create_polygon(x1 + 30, y1 + 10, x1 + 20, y1 + 20, x1 + 10, y1 + 10,
-                                          x1 + 15, y1 + 30, x1 + 5, y1 + 40, x1 + 30, y1 + 35,
-                                          x1 + 55, y1 + 40, x1 + 45, y1 + 30, x1 + 50, y1 + 10,
-                                          x1 + 30, y1 + 15, fill="yellow")
-            # 如果方格是选中的棋子或者合法的走法，就用红色的边框标记出来
-            if selected_piece is not None and (row, col) in get_valid_moves(board, selected_piece[0],
-                                                                            selected_piece[1]):
-                canvas.create_rectangle(x1 + 2, y1 + 2, x2 - 2, y2 - 2, outline="red", width=4)
-    # 更新画布
+                canvas.create_rectangle(x1, y1, x2, y2, fill="#8B4513")
+            # If there's a piece on the square, draw the piece with its color and shape
+            piece = board[row][col]
+            if piece is not None:
+                # Draw a circle with the color of the piece
+                color = "white" if piece == "white" else "black" if piece == "black" else "blue" if piece == "green" else "red"
+                canvas.create_oval(x1 + 5, y1 + 5, x2 - 5, y2 - 5, fill=color)
+            # If the square is a selected piece or a valid move, mark it with a yellow border
+            if selected_piece is not None and (row, col) in get_valid_moves(board, selected_piece[0], selected_piece[1]):
+                canvas.create_rectangle(x1 + 2, y1 + 2, x2 - 2, y2 - 2, outline="black", width=4)
+    # Update the canvas
     canvas.update()
 
 
-def is_valid_move(board, row1, col1, row2, col2):
-    color = board[row1][col1]
+def check_move(game_board, start_row, start_col, end_row, end_col):
+    piece_color = game_board[start_row][start_col]
 
-    # 定义一个列表，用来存储对方的所有可能的棋子颜色
-    opponent_colors = []
-    if color == PLAYER_COLOR or color == PLAYER_KING_COLOR:
-        opponent_colors = [AI_COLOR, AI_KING_COLOR]
-    elif color == AI_COLOR or color == AI_KING_COLOR:
-        opponent_colors = [PLAYER_COLOR, PLAYER_KING_COLOR]
-    # 如果目标位置不在棋盘范围内，或者不为空，就返回False
-    if not (0 <= row2 < BOARD_SIZE and 0 <= col2 < BOARD_SIZE) or board[row2][col2] != None:
+    # Define a list to store all possible colors of the opponent's pieces
+    enemy_piece_colors = []
+    if piece_color in ["white", "green"]:
+        enemy_piece_colors = ["black", "yellow"]
+    elif piece_color in ["black", "yellow"]:
+        enemy_piece_colors = ["white", "green"]
+
+    # If the target position is not within the range of the board, or is not empty, return False
+    if not (0 <= end_row < 8 and 0 <= end_col < 8) or game_board[end_row][end_col] is not None:
         return False
-    # 如果目标位置和起始位置的行差的绝对值为1，表示是普通移动
-    if abs(row2 - row1) == 1:
-        # 如果棋子是国王，就可以在任意方向移动一格
-        if color == PLAYER_KING_COLOR or color == AI_KING_COLOR:
-            # 如果目标位置是对方的棋子，就返回False
-            if board[row2][col2] in opponent_colors:
+
+    # If the absolute difference between the target position and the starting position is 1, it means it is a normal move
+    if abs(end_row - start_row) == 1:
+        # If the piece is a king, it can move one square in any direction
+        if piece_color in ["green", "blue"]:
+            # If the target position is the opponent's piece, return False
+            if game_board[end_row][end_col] in enemy_piece_colors:
                 return False
             else:
                 return True
-        # 如果棋子是玩家的普通棋子，就只能向上移动一格
-        elif color == PLAYER_COLOR and row2 < row1:
-            # 如果目标位置是对方的棋子，就返回False
-            if board[row2][col2] in opponent_colors:
+        # If the piece is a normal player piece, it can only move one square up
+        elif piece_color == "white" and end_row < start_row:
+            # If the target position is the opponent's piece, return False
+            if game_board[end_row][end_col] in enemy_piece_colors:
                 return False
             else:
                 return True
-        # 如果棋子是AI的普通棋子，就只能向下移动一格
-        elif color == AI_COLOR and row2 > row1:
-            # 如果目标位置是对方的棋子，就返回False
-            if board[row2][col2] in opponent_colors:
+        # If the piece is a normal AI piece, it can only move one square down
+        elif piece_color == "black" and end_row > start_row:
+            # If the target position is the opponent's piece, return False
+            if game_board[end_row][end_col] in enemy_piece_colors:
                 return False
             else:
                 return True
 
-    # 如果目标位置和起始位置的行差的绝对值为2，表示是跳跃移动
-    elif abs(row2 - row1) == 2:
-        # 计算跳跃的中间位置的行列号
-        row3 = (row1 + row2) // 2
-        col3 = (col1 + col2) // 2
+    # If the absolute difference between the target position and the starting position is 2, it means it is a jump move
+    elif abs(end_row - start_row) == 2:
+        # Calculate the row and column numbers of the middle position of the jump
+        mid_row = (start_row + end_row) // 2
+        mid_col = (start_col + end_col) // 2
 
-        # 如果中间位置有对方的棋子，就可以跳过它
-        if board[row3][col3] != None and board[row3][col3] in opponent_colors:
+        # If there is an opponent's piece in the middle position, it can jump over it
+        if game_board[mid_row][mid_col] is not None and game_board[mid_row][mid_col] in enemy_piece_colors:
             return True
 
-        # 如果中间位置有自己的棋子，就不能跳过它
-        # 定义一个列表，用来存储自己的所有可能的棋子颜色
-        own_colors = [color, color.upper()]
-        if color == PLAYER_COLOR or color == PLAYER_KING_COLOR:
-            own_colors.append(PLAYER_KING_COLOR)
-        elif color == AI_COLOR or color == AI_KING_COLOR:
-            own_colors.append(AI_KING_COLOR)
+        # If there is own piece in the middle position, it cannot jump over it
+        # Define a list to store all possible colors of own pieces
+        own_piece_colors = [piece_color, piece_color.upper()]
+        if piece_color in ["white", "green"]:
+            own_piece_colors.append("green")
+        elif piece_color in ["black", "yellow"]:
+            own_piece_colors.append("yellow")
 
-        if board[row3][col3] != None and board[row3][col3] in own_colors:
+        if game_board[mid_row][mid_col] is not None and game_board[mid_row][mid_col] in own_piece_colors:
             return False
 
-    # 其他情况都返回False
+    # In all other cases, return False
     return False
 
-
-# 返回一个棋子的所有合法走法，参数是棋盘，行号和列号
+# Returns all legal moves for a piece, parameters are the board, row number, and column number
+# Function to get all possible legal moves for a given piece
 def get_valid_moves(board, row, col):
-    color = board[row][col]
-    # 初始化一个空列表，用来存储有效移动
+    piece = board[row][col]
     moves = []
-
-    # 如果棋子是国王，就可以在任意方向移动或跳跃
-    if color == PLAYER_KING_COLOR or color == AI_KING_COLOR:
-        for direction in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
-            # 普通移动
-            if is_valid_move(board, row, col, row + direction[0], col + direction[1]):
-                moves.append((row + direction[0], col + direction[1]))
-            # 跳跃移动
-            if is_valid_move(board, row, col, row + 2 * direction[0], col + 2 * direction[1]):
-                moves.append((row + 2 * direction[0], col + 2 * direction[1]))
-
-    # 如果棋子是玩家的普通棋子，就只能向上移动或跳跃
-    elif color == PLAYER_COLOR:
-        for direction in [(-1, -1), (-1, 1)]:
-            # 普通移动
-            if is_valid_move(board, row, col, row + direction[0], col + direction[1]):
-                moves.append((row + direction[0], col + direction[1]))
-            # 跳跃移动
-            if is_valid_move(board, row, col, row + 2 * direction[0], col + 2 * direction[1]):
-                moves.append((row + 2 * direction[0], col + 2 * direction[1]))
-
-    # 如果棋子是AI的普通棋子，就只能向下移动或跳跃
-    elif color == AI_COLOR:
-        for direction in [(1, -1), (1, 1)]:
-            # 普通移动
-            if is_valid_move(board, row, col, row + direction[0], col + direction[1]):
-                moves.append((row + direction[0], col + direction[1]))
-            # 跳跃移动
-            if is_valid_move(board, row, col, row + 2 * direction[0], col + 2 * direction[1]):
-                moves.append((row + 2 * direction[0], col + 2 * direction[1]))
-
-    # 返回有效移动的列表
+    def check_and_add_moves(directions):
+        for dx, dy in directions:
+            new_row, new_col = row + dx, col + dy
+            if check_move(board, row, col, new_row, new_col):
+                moves.append((new_row, new_col))
+            new_row, new_col = row + 2 * dx, col + 2 * dy
+            if check_move(board, row, col, new_row, new_col):
+                moves.append((new_row, new_col))
+    if piece in ["green", "yellow"]:
+        check_and_add_moves([(-1, -1), (-1, 1), (1, -1), (1, 1)])
+    elif piece == "white":
+        check_and_add_moves([(-1, -1), (-1, 1)])
+    elif piece == "black":
+        check_and_add_moves([(1, -1), (1, 1)])
     return moves
 
-def can_jump(row, col):
-    # 判断一个棋子是否有跳过的机会
+def jump_check(row, col):
+    # Check if a piece has a chance to jump
     piece = board[row][col]
 
     if piece is None:
         return False
 
-    for direction in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
-        move_row = row + direction[0]
-        move_col = col + direction[1]
-        jump_row = row + 2 * direction[0]
-        jump_col = col + 2 * direction[1]
+    directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+    for dx, dy in directions:
+        move_row, move_col = row + dx, col + dy
+        jump_row, jump_col = row + 2 * dx, col + 2 * dy
 
-        if is_on_board(jump_row, jump_col) and board[jump_row][jump_col] is None:
-            # 如果跳过后的格子是空的
-            if piece == PLAYER_COLOR or piece == "white king":
-                # 如果是玩家的棋子，只能向前跳过
-                if move_row < row and board[move_row][move_col] in [AI_COLOR, "black king"]:
-                    return True
-
-            elif piece == AI_COLOR or piece == "black king":
-                # 如果是电脑的棋子，只能向后跳过
-                if move_row > row and board[move_row][move_col] in [PLAYER_COLOR, "white king"]:
-                    return True
+        if cross_board_check(jump_row, jump_col) and board[jump_row][jump_col] is None:
+            # If the cell after the jump is empty
+            if (piece == PLAYER_COLOR or piece == "white king") and move_row < row and board[move_row][move_col] in [AI_COLOR, "black king"]:
+                return True
+            elif (piece == AI_COLOR or piece == "black king") and move_row > row and board[move_row][move_col] in [PLAYER_COLOR, "white king"]:
+                return True
 
     return False
 
+def cross_board_check(x, y):
+    # Check if a coordinate is on the board
+    return 0 <= x < 8 and 0 <= y < 8
 
-def is_on_board(row, col):
-    # 判断一个坐标是否在棋盘上
-    return 0 <= row < BOARD_SIZE and 0 <= col < BOARD_SIZE
-
-
-def make_king(row, col):
-    # 判断一个棋子是否可以升王，并更新它的状态
-    piece = board[row][col]
+def become_king(x, y):
+    # Check if a piece can be promoted to king, and update its status
+    piece = board[x][y]
 
     if piece is None:
         return False
 
-    if piece == PLAYER_COLOR and row == 0:
-        board[row][col] = "white king"
+    if piece == PLAYER_COLOR and x == 0:
+        board[x][y] = "white king"
         return True
 
-    elif piece == AI_COLOR and row == BOARD_SIZE - 1:
-        board[row][col] = "black king"
+    elif piece == AI_COLOR and x == 7:
+        board[x][y] = "black king"
         return True
 
-    else:
-        return False
+    return False
 
+# Move a piece, with parameters for the starting position and the target position
+def piece_move(board, start_row, start_col, end_row, end_col, is_crowning=False):
+    # Get the color of the piece
+    piece_color = board[start_row][start_col]
 
-# 移动棋子，参数是起始位置和目标位置
-def make_move(board, row1, col1, row2, col2, is_crowning=False):
-    # 获取棋子的颜色
-    color = board[row1][col1] # 这里用row1和col1作为索引
-    # 如果目标位置和起始位置的行差的绝对值大于1，表示是跳跃移动，就要吃掉对方的棋子
-    if abs(row2 - row1) > 1:
-        # 计算被吃掉的棋子的位置
-        row3 = (row1 + row2) // 2
-        col3 = (col1 + col2) // 2
+    # Check if it's a jump move
+    is_jump_move = abs(end_row - start_row) > 1
 
-        # 如果被吃棋子是否为王时，将当前棋子变为王
-        # if board[row3][col3] == PLAYER_KING_COLOR or board[row3][col3] == AI_KING_COLOR:
-        #     # 如果被吃棋子是王，则将当前棋子也变为王
-        #     board[row2][col2] = PLAYER_KING_COLOR if color == PLAYER_COLOR else AI_KING_COLOR
-        # else:
-        #     # 如果被吃棋子不是王，则按照原来的逻辑判断是否升为国王
-        #     # 把起始位置的棋子移动到目标位置
-        board[row2][col2] = board[row1][col1]
+    if is_jump_move:
+        # Calculate the position of the captured piece
+        middle_row = (start_row + end_row) // 2
+        middle_col = (start_col + end_col) // 2
 
-        # 把被吃掉的棋子从棋盘上移除
-        board[row3][col3] = None
+        # Remove the captured piece
+        board[middle_row][middle_col] = None
 
-    else:
-        # 如果不是跳跃移动，就直接把起始位置的棋子移动到目标位置
-        board[row2][col2] = board[row1][col1]
+    # Move the piece to the target position
+    board[end_row][end_col] = piece_color
 
-    # 如果棋子移动到了对方的底线，就升为国王
-    if color == PLAYER_COLOR and row2 == 0:
-        board[row2][col2] = PLAYER_KING_COLOR
-    elif color == AI_COLOR and row2 == BOARD_SIZE - 1:
-        board[row2][col2] = AI_KING_COLOR
+    # Check if it needs to be crowned
+    is_player_piece = piece_color == PLAYER_COLOR
+    is_ai_piece = piece_color == AI_COLOR
+    reached_opponent_end = (is_player_piece and end_row == 0) or (is_ai_piece and end_row == 8 - 1)
 
-    # 把起始位置置为空
-    board[row1][col1] = None
+    if reached_opponent_end:
+        board[end_row][end_col] = PLAYER_KING_COLOR if is_player_piece else AI_KING_COLOR
 
-    if is_crowning:
-        return board
+    # Clear the starting position
+    board[start_row][start_col] = None
 
     return board
 
-# 返回所有可能的走法，参数是棋盘和颜色
-def get_all_moves(board, color):
-    # 初始化一个空列表，用来存储走法
-    moves = []
-
-    # 遍历棋盘，找到指定颜色的棋子
-    for row in range(BOARD_SIZE):
-        for col in range(BOARD_SIZE):
-            if board[row][col] == color or board[row][col] == color.upper():
-                # 调用get_valid_moves函数，获取该棋子的所有合法走法
-                valid_moves = get_valid_moves(board, row, col)
-
-                # 把走法添加到列表中，每个走法包含起始位置和目标位置
-                moves.extend([(row, col, move[0], move[1]) for move in valid_moves])
-
-    # 返回所有走法的列表
-    return moves
+def get_all_moves(board: List[List[str]], color: str) -> List[Tuple[int, int, int, int]]:
+    all_moves = [(row, col, *move)
+                 for row in range(8)
+                 for col in range(8)
+                 if board[row][col] in {color, color.upper()}
+                 for move in get_valid_moves(board, row, col)]
+    # Check if there are any jumps
+    jumps = [move for move in all_moves if abs(move[0] - move[2]) > 1]
+    if jumps:
+        return jumps
+    else:
+        return all_moves
 
 
-def evaluate(board, color):
-    # 初始化一个变量，用来存储评估值
-    value = 0
+def evaluate(board: List[List[str]], color: str) -> int:
+    color_map = {PLAYER_KING_COLOR: 7, AI_KING_COLOR: -7, PLAYER_COLOR: 1, AI_COLOR: -1}
+    return sum(color_map.get(board[row][col], 0) for row in range(8) for col in range(8) if board[row][col])
 
-    # 遍历棋盘上的每个格子
-    for row in range(BOARD_SIZE):
-        for col in range(BOARD_SIZE):
-            # 如果格子有棋子
-            if board[row][col] is not None:
-                # 获取棋子的颜色
-                piece_color = board[row][col]
-
-                # 如果棋子是玩家的国王，就给评估值加上7
-                if piece_color == PLAYER_KING_COLOR:
-                    value += 7
-                # 如果棋子是AI的国王，就给评估值减去7
-                elif piece_color == AI_KING_COLOR:
-                    value -= 7
-                # 如果棋子是玩家的普通棋子，就给评估值加上1
-                elif piece_color == PLAYER_COLOR:
-                    value += 1
-                # 如果棋子是AI的普通棋子，就给评估值减去1
-                elif piece_color == AI_COLOR:
-                    value -= 1
-
-    # 返回评估值
-    return value
-
-# 复制一个棋盘，返回一个新的棋盘
 def deep_copy(obj):
-    # 如果对象是一个列表
-    if isinstance(obj, list):
-        # 初始化一个空列表，用来存储新的列表
-        new_list = []
-        # 遍历原来的列表，递归地复制每个元素，并添加到新的列表中
-        for item in obj:
-            new_list.append(deep_copy(item))
-        # 返回新的列表
-        return new_list
-    # 如果对象是其他类型，就直接返回对象本身
-    else:
-        return obj
+    return [deep_copy(item) for item in obj] if isinstance(obj, list) else obj
 
-# Alpha-Beta剪枝算法，搜索最优走法，并返回最优评分和走法
-# 使用Alpha-Beta剪枝算法搜索最佳走法，参数是棋盘，搜索深度，alpha值，beta值，和是否是最大化玩家
 def alpha_beta_search(board, depth, alpha, beta, is_ai_turn):
-    # 如果游戏结束或者搜索深度为0，就返回评估值和空走法
-    if is_game_over() or depth == 0:
+    if check_game_over() or depth == 0:
         return evaluate(board, AI_COLOR), None
-    # 如果是AI的回合，就尝试最大化评估值
-    # 如果AI没有有效的走法，就返回一个很小的评估值，表示AI输了
-    if is_ai_turn and not get_all_moves(board, AI_COLOR):
-        return -float('inf'), None
-
-    # 如果玩家没有有效的走法，就返回一个很大的评估值，表示AI赢了
-    if not is_ai_turn and not get_all_moves(board, PLAYER_COLOR):
-        return float('inf'), None
-
-    # 如果是AI的回合，就尝试最大化评估值
-    if is_ai_turn:
-        # 初始化最大评估值为负无穷
-        max_value = -float('inf')
-        # 初始化最佳走法为None
-        best_move = None
-
-        # 遍历棋盘上的每个格子
-        for row in range(BOARD_SIZE):
-            for col in range(BOARD_SIZE):
-                if board[row][col] in (AI_COLOR, AI_KING_COLOR):
-                    # 获取棋子的有效移动
-                    moves = get_valid_moves(board, row, col)
-
-                    # 检查AI是否有必须跳过对方棋子的情况
-                    must_jump = False
-                    for r in range(BOARD_SIZE):
-                        for c in range(BOARD_SIZE):
-                            if board[r][c] in (AI_COLOR, AI_KING_COLOR):
-                                moves2 = get_valid_moves(board, r, c)
-                                for move2 in moves2:
-                                    if abs(move2[0] - r) > 1:
-                                        must_jump = True
-                                        break
-
-                    # 如果有，就只考虑可以跳过对方棋子的走法
-                    if must_jump:
-                        moves = [move for move in moves if abs(move[0] - row) > 1]
-
-                    # 遍历每个有效移动
-                    for move in moves:
-                        # 复制一个新的棋盘，并模拟走法
-                        new_board = deep_copy(board)
-                        make_move(new_board, row, col, move[0], move[1])
-
-                        # 递归调用alpha_beta_search函数，获取下一层的评估值和走法
-                        value, _ = alpha_beta_search(new_board, depth - 1, alpha, beta, False)
-
-                        # 如果评估值大于最大评估值，就更新最大评估值和最佳走法
-                        if value > max_value:
-                            max_value = value
-                            best_move = (row, col, move[0], move[1])
-
-                        # 如果评估值大于等于beta值，就剪枝并返回最大评估值和最佳走法
-                        if value >= beta:
-                            return max_value, best_move
-
-                        # 如果评估值大于alpha值，就更新alpha值
-                        if value > alpha:
-                            alpha = value
-
-        # 返回最大评估值和最佳走法
-        return max_value, best_move
-
-    # 如果是玩家的回合，就尝试最小化评估值
-    else:
-        # 初始化最小评估值为正无穷
-        min_value = float('inf')
-        # 初始化最佳走法为None
-        best_move = None
-
-        # 遍历棋盘上的每个格子
-        for row in range(BOARD_SIZE):
-            for col in range(BOARD_SIZE):
-                # 如果格子有玩家的棋子
-                if board[row][col] in (PLAYER_COLOR, PLAYER_KING_COLOR):
-                    # 获取棋子的有效移动
-                    moves = get_valid_moves(board, row, col)
-
-                    # 检查玩家是否有必须跳过对方棋子的情况
-                    must_jump = False
-                    for r in range(BOARD_SIZE):
-                        for c in range(BOARD_SIZE):
-                            if board[r][c] in (PLAYER_COLOR, PLAYER_KING_COLOR):
-                                moves2 = get_valid_moves(board, r, c)
-                                for move2 in moves2:
-                                    if abs(move2[0] - r) > 1:
-                                        must_jump = True
-                                        break
-
-                    # 如果有，就只考虑可以跳过对方棋子的走法
-                    if must_jump:
-                        moves = [move for move in moves if abs(move[0] - row) > 1]
-
-                    # 遍历每个有效移动
-                    for move in moves:
-                        # 复制一个新的棋盘，并模拟走法
-                        new_board = deep_copy(board)
-                        make_move(new_board, row, col, move[0], move[1])
-
-                        # 递归调用alpha_beta_search函数，获取下一层的评估值和走法
-                        value, _ = alpha_beta_search(new_board, depth - 1, alpha, beta, True)
-
-                        # 如果评估值小于最小评估值，就更新最小评估值和最佳走法
-                        if value < min_value:
-                            min_value = value
-                            best_move = (row, col, move[0], move[1])
-
-                        # 如果评估值小于等于alpha值，就剪枝并返回最小评估值和最佳走法
-                        if value <= alpha:
-                            return min_value, best_move
-
-                        # 如果评估值小于beta值，就更新beta值
-                        if value < beta:
-                            beta = value
-
-        # 返回最小评估值和最佳走法
-        return min_value, best_move
-
-
-# AI移动，根据ai_difficulty的值来调用不同的搜索算法
-def ai_move():
-    time.sleep(0.2)
+    moves = get_all_moves(board, AI_COLOR if is_ai_turn else PLAYER_COLOR)
+    if not moves:
+        return (-float('inf'), None) if is_ai_turn else (float('inf'), None)
+    best_score = -float('inf') if is_ai_turn else float('inf')
     best_move = None
+    for move in moves:
+        new_board = deep_copy(board)
+        piece_move(new_board, *move)
+        score, _ = alpha_beta_search(new_board, depth - 1, alpha, beta, not is_ai_turn)
+        if is_ai_turn and score > best_score:
+            best_score = score
+            best_move = move
+            alpha = max(alpha, best_score)
+        if not is_ai_turn and score < best_score:
+            best_score = score
+            best_move = move
+            beta = min(beta, best_score)
+        if beta <= alpha:
+            break
+    return best_score, best_move if best_move else moves[0]
 
-    # 获取AI移动后的行列号和是否升王
-    row = None
-    col = None 
-    is_king = None
+def ai_piece_move():
+    time.sleep(0.5)
+    best_move = None
+    row, col, is_king = None, None, None
 
-    # 如果ai_difficulty是简单，就随机选择一个走法
     if ai_difficulty == "Easy":
-        moves = []
-        for row in range(BOARD_SIZE):
-            for col in range(BOARD_SIZE):
-                if board[row][col] == AI_COLOR or board[row][col] == AI_KING_COLOR:
-                    valid_moves = get_valid_moves(board, row, col)
-                    moves.extend([(row, col, move[0], move[1]) for move in valid_moves])
+        moves = [(r, c, move[0], move[1]) for r in range(8) for c in range(8)
+                 if board[r][c] in [AI_COLOR, AI_KING_COLOR]
+                 for move in get_valid_moves(board, r, c)]
         if moves:
-            # 检查所有可能的移动，以确定是否有必吃的情况
             must_jump = any(abs(move[0] - move[2]) > 1 for move in moves)
-            if must_jump:
-                moves = [move for move in moves if abs(move[0] - move[2]) > 1]
+            moves = [move for move in moves if abs(move[0] - move[2]) > 1] if must_jump else moves
             random_move = random.choice(moves)
-            make_move(board, random_move[0], random_move[1], random_move[2], random_move[3])
-            draw_board()
+            piece_move(board, *random_move)
+            start_board()
+            row, col = random_move[2], random_move[3]
+            is_king = become_king(row, col)
 
-    elif ai_difficulty == "Medium":
-        _, best_move = alpha_beta_search(board, 2, -float('inf'), float('inf'), True)
+    else:
+        depth = 2 if ai_difficulty == "Medium" else 4
+        _, best_move = alpha_beta_search(board, depth, -float('inf'), float('inf'), True)
         if best_move:
-            make_move(board, best_move[0], best_move[1], best_move[2], best_move[3])
-            draw_board()
+            piece_move(board, *best_move)
+            start_board()
+            row, col = best_move[2], best_move[3]
+            is_king = become_king(row, col)
 
-    elif ai_difficulty == "Hard":
+    while best_move and not is_king and jump_check(row, col):
         _, best_move = alpha_beta_search(board, 4, -float('inf'), float('inf'), True)
         if best_move:
-            make_move(board, best_move[0], best_move[1], best_move[2], best_move[3])
-            draw_board()
+            piece_move(board, *best_move)
+            start_board()
+            row, col = best_move[2], best_move[3]
+            is_king = become_king(row, col)
 
-    if best_move:
-        row = best_move[2]
-        col = best_move[3]
-        is_king = make_king(row, col)
-
-    # 这里检查AI是否可以继续跳  
-    # 检查是否可以继续跳  
-    while best_move and not is_king and can_jump(row, col):
-       best_move = alpha_beta_search(board, 4, -float('inf'), float('inf'), True)  
-       if best_move:
-           make_move(board, best_move[0], best_move[1], best_move[2], best_move[3])
-           draw_board()           
-           row = best_move[2]
-           col = best_move[3]  
-           is_king = make_king(row, col)    
-
-    if is_game_over():
-        show_game_over_message()
+    if check_game_over():
+        ending_message()
         return True
 
     return False
 
-
-
-def set_difficulty(difficulty):
-    # 设置AI难度
+def game_setting(difficulty):
+    # setting the difficulty
     global ai_difficulty
     ai_difficulty = difficulty
 
+def click_gui(event):
+    global selected_piece, valid_moves, game_over
+    x, y = event.x, event.y
+    row, col = y // 60, x // 60
 
-# 定义一个变量，用来存储当前选中的棋子的有效移动
-valid_moves = []
-
-
-# 处理鼠标点击事件
-def handle_click(event):
-    # 获取鼠标点击的位置
-    x = event.x
-    y = event.y
-
-    row = y // SQUARE_SIZE
-    col = x // SQUARE_SIZE
-
-    # 使用global关键字，声明要使用全局变量
-    global selected_piece
-    global valid_moves
-
-    # 检查game_over是否为True，如果是，就直接返回
-    if game_over:
-        return
-    # 如果鼠标点击的位置不在棋盘上，就直接返回
-    if not is_on_board(row, col):
+    if game_over or not cross_board_check(row, col):
         return
 
-    # 如果没有选中棋子，就尝试选中一个玩家的棋子
     if selected_piece is None:
-        # 如果方格有玩家的棋子，就选中它，并获取它的有效移动
         if board[row][col] in (PLAYER_COLOR, PLAYER_KING_COLOR):
             selected_piece = (row, col)
-            valid_moves = get_valid_moves(board, row, col)  # 获取有效移动
-
-            # 检查玩家是否有必须跳过对方棋子的情况
-            must_jump = False
-            for r in range(BOARD_SIZE):
-                for c in range(BOARD_SIZE):
-                    if board[r][c] in (PLAYER_COLOR, PLAYER_KING_COLOR):
-                        moves = get_valid_moves(board, r, c)
-                        for move in moves:
-                            if abs(move[0] - r) > 1:
-                                must_jump = True
-                                break
-
-            # 如果有，就只允许玩家选择可以跳过对方棋子的走法，并弹出提示信息
-            if must_jump:
+            valid_moves = get_valid_moves(board, row, col)
+            if any(abs(move[0] - row) > 1 for move in valid_moves):
                 valid_moves = [move for move in valid_moves if abs(move[0] - row) > 1]
-
-
-    # 如果已经选中棋子，就尝试移动它
     else:
-        # 如果方格是有效的移动目标，就移动棋子，并取消选中
         if (row, col) in valid_moves:
-            is_king = make_move(board, selected_piece[0], selected_piece[1], row, col)
-            draw_board()
-
-            # 检查玩家是否可以继续跳跃，如果可以，就不要让AI移动，而是让玩家继续选择目标位置
-            # 只有当移动的距离大于1时，才表示吃掉了对方的棋子，才需要判断是否能继续跳跃
-            if not is_king and abs(row - selected_piece[0]) > 1 and can_jump(row, col):
+            is_king = piece_move(board, selected_piece[0], selected_piece[1], row, col)
+            start_board()
+            if not is_king and abs(row - selected_piece[0]) > 1 and jump_check(row, col):
                 selected_piece = (row, col)
-                valid_moves = get_valid_moves(board, row, col)
                 valid_moves = [move for move in valid_moves if abs(move[0] - row) > 1]
-                tk.messagebox.showinfo("提示", "你可以继续跳跃。")
             else:
                 selected_piece = None
-                # 让AI移动
-                ai_move()
-
-
-        # 如果方格是另一个玩家的棋子，就取消之前的选中，并选中这个棋子
+                ai_piece_move()
         elif board[row][col] in (PLAYER_COLOR, PLAYER_KING_COLOR):
             selected_piece = (row, col)
-            valid_moves = get_valid_moves(board, row, col)  # 获取有效移动
-
-            # 检查玩家是否有必须跳过对方棋子的情况
-            must_jump = False
-            for r in range(BOARD_SIZE):
-                for c in range(BOARD_SIZE):
-                    if board[r][c] in (PLAYER_COLOR, PLAYER_KING_COLOR):
-                        moves = get_valid_moves(board, r, c)
-                        for move in moves:
-                            if abs(move[0] - r) > 1:
-                                must_jump = True
-                                break
-
-            # 如果有，就只允许玩家选择可以跳过对方棋子的走法，并弹出提示信息
-            if must_jump:
+            valid_moves = get_valid_moves(board, row, col)
+            if any(abs(move[0] - row) > 1 for move in valid_moves):
                 valid_moves = [move for move in valid_moves if abs(move[0] - row) > 1]
-                tk.messagebox.showinfo("提示", "有必吃，请移动该棋子。")
-
-        # 如果方格是其他情况，就取消选中
         else:
             selected_piece = None
 
-    # 重新画出棋盘
-    draw_board()
+    start_board()
 
+def check_game_over():
+    player_pieces, ai_pieces = 0, 0
+    player_has_valid_moves, ai_has_valid_moves = False, False
 
-# 判断游戏是否结束，返回True或False
-def is_game_over():
-    # 初始化两个变量，用来存储玩家和AI的棋子数量
-    player_pieces = 0
-    ai_pieces = 0
-
-    # 遍历棋盘，统计棋子数量
-    for row in range(BOARD_SIZE):
-        for col in range(BOARD_SIZE):
-            # 如果是玩家的棋子，就增加玩家的棋子数量
-            if board[row][col] in (PLAYER_COLOR, PLAYER_KING_COLOR):
+    for row in range(8):
+        for col in range(8):
+            piece = board[row][col]
+            if piece in (PLAYER_COLOR, PLAYER_KING_COLOR):
                 player_pieces += 1
-
-            # 如果是AI的棋子，就增加AI的棋子数量
-            elif board[row][col] in (AI_COLOR, AI_KING_COLOR):
+                if not player_has_valid_moves and get_valid_moves(board, row, col):
+                    player_has_valid_moves = True
+            elif piece in (AI_COLOR, AI_KING_COLOR):
                 ai_pieces += 1
+                if not ai_has_valid_moves and get_valid_moves(board, row, col):
+                    ai_has_valid_moves = True
 
-    # 如果玩家或者AI的棋子数量为0，就返回True，表示游戏结束
     if player_pieces == 0 or ai_pieces == 0:
         return True
 
-    # 如果玩家或者AI没有有效的走法，就返回True，表示游戏结束
-    for row in range(BOARD_SIZE):
-        for col in range(BOARD_SIZE):
-            # 如果是玩家的棋子，并且有有效的走法，就返回False，表示游戏未结束
-            if board[row][col] in (PLAYER_COLOR, PLAYER_KING_COLOR) and get_valid_moves(board, row, col):
-                return False
+    if not player_has_valid_moves and not ai_has_valid_moves:
+        return True
 
-            # 如果是AI的棋子，并且有有效的走法，就返回False，表示游戏未结束
-            elif board[row][col] in (AI_COLOR, AI_KING_COLOR) and get_valid_moves(board, row, col):
-                return False
+    return False
 
-    # 如果一方棋子设法抓住了对方的国王，它会立即加冕为国王，随后游戏结束
-    for row in range(BOARD_SIZE):
-        for col in range(BOARD_SIZE):
-            # 如果是玩家的普通棋子，并且可以跳过对方的国王，就返回True，表示游戏结束
-            if board[row][col] == PLAYER_COLOR and is_valid_move(board, row, col, row - 2, col - 2) and board[row - 1][
-                col - 1] == AI_KING_COLOR:
-                return True
-            if board[row][col] == PLAYER_COLOR and is_valid_move(board, row, col, row - 2, col + 2) and board[row - 1][
-                col + 1] == AI_KING_COLOR:
-                return True
-
-            # 如果是AI的普通棋子，并且可以跳过对方的国王，就返回True，表示游戏结束
-            if board[row][col] == AI_COLOR and is_valid_move(board, row, col, row + 2, col - 2) and board[row + 1][
-                col - 1] == PLAYER_KING_COLOR:
-                return True
-            if board[row][col] == AI_COLOR and is_valid_move(board, row, col, row + 2, col + 2) and board[row + 1][
-                col + 1] == PLAYER_KING_COLOR:
-                return True
-
-    # 如果以上都不满足，就返回True，表示游戏结束
-    return True
-
-
-def show_rules():
-    # 显示规则说明
-    tk.messagebox.showinfo("规则说明", "这是一个国际64格跳棋游戏。\n"
-                                   "游戏规则如下：\n"
-                                   "1. 每人用一种颜色棋子占一个角。\n"
-                                   "2. 棋子可以在有直线连接的相邻六个方向移动或跳过其他棋子。\n"
-                                   "3. 谁先把正对面的阵地全部占领，谁就取得胜利。\n"
-                                   "4. 如果一方棋子设法抓住了对方的国王，它会立即加冕为国王，随后游戏结束。\n"
-                                   "5. 国王是在自己的棋子到达对面的最后一行时才产生的。\n"
-                                   "6. 国王可以在任意方向移动或跳过其他棋子。\n"
-                                   "祝你玩得开心！")
-
+def showing_rules():
+    # Display rule descriptions
+    messagebox.showinfo("Game Rules",
+                        "This is a game of International 64-square Draughts.\n"
+                        "The game rules are as follows:\n"
+                        "1. Each player occupies one corner with a different color.\n"
+                        "2. Pieces can move or jump over other pieces in any of the six adjacent directions connected in a straight line.\n"
+                        "3. The first player to occupy all the positions directly opposite wins.\n"
+                        "4. If a player's piece captures the opponent's king, it will immediately be crowned king and the game ends.\n"
+                        "5. The king is produced when one's piece reaches the last line on the opposite side.\n"
+                        "6. The king can move or jump over other pieces in any direction.\n"
+                        "Enjoy your game!")
 
 def restart_game():
-    # 使用global关键字，声明要使用全局变量
-    global board
-    global game_over
-    # 重置棋盘状态
-    board = [[None] * BOARD_SIZE for _ in range(BOARD_SIZE)]
-    for row in range(3):
-        for col in range(BOARD_SIZE):
-            if (row + col) % 2 == 1:
-                board[row][col] = AI_COLOR
+    global board, game_over
+    board = [[None] * 8 for _ in range(8)]
+    initialize_board()
 
-    for row in range(5, BOARD_SIZE):
-        for col in range(BOARD_SIZE):
-            if (row + col) % 2 == 1:
-                board[row][col] = PLAYER_COLOR
-
-    # 设置game_over为False
     game_over = False
 
-    # 重新绘制棋盘
-    draw_board()
+    start_board()
 
-    # 清除游戏结束信息
-    canvas.delete("all")
-    # 重新绘制棋盘
-    draw_board()
-
-def show_game_over_message():
-    # 显示游戏结束信息
+def ending_message():
     player_pieces = 0
     ai_pieces = 0
-    for row in range(BOARD_SIZE):
-        for col in range(BOARD_SIZE):
-            if board[row][col] == PLAYER_COLOR or board[row][col] == 'white king':
+    player_has_valid_moves = False
+    ai_has_valid_moves = False
+
+    for row in range(8):
+        for col in range(8):
+            piece = board[row][col]
+            if piece in (PLAYER_COLOR, PLAYER_KING_COLOR):
                 player_pieces += 1
-            elif board[row][col] == AI_COLOR or board[row][col] == 'black king':
+                if not player_has_valid_moves and get_valid_moves(board, row, col):
+                    player_has_valid_moves = True
+            elif piece in (AI_COLOR, AI_KING_COLOR):
                 ai_pieces += 1
+                if not ai_has_valid_moves and get_valid_moves(board, row, col):
+                    ai_has_valid_moves = True
 
-    if player_pieces == 0:
-        message = 'AI赢了!'
+    if player_pieces == 0 or not player_has_valid_moves:
+        message = 'AI won!'
     else:
-        message = '你赢了!'
-    # 创建一个新的顶级窗口
-    top = tk.Toplevel()
-    top.title('游戏结束')
+        message = 'You won!'
 
-    # 在顶级窗口中添加标签显示游戏结束的消息
+    message_window(message)
+
+    game_over = True
+
+def message_window(message):
+    top = tk.Toplevel()
+    top.title('Game Over')
+
     label = tk.Label(top, text=message, font=('Arial', 24))
     label.pack(padx=20, pady=20)
 
-    # 定义关闭窗口的函数
-    def close_window():
-        top.destroy()
-        window.destroy()
+    close_button = tk.Button(top, text='Close Window', command=top.destroy)
+    close_button.pack(pady=10)
 
-    # 在顶级窗口中添加一个按钮用于关闭窗口
-    button = tk.Button(top, text='关闭窗口', command=close_window)
-    button.pack(pady=10)
-    # 在顶级窗口中添加一个按钮用于重新开始游戏
-
-    def game_close_restart():
-        top.destroy()
-        restart_game()
-    restart_button = tk.Button(top, text='重新开始游戏', command=game_close_restart)
+    restart_button = tk.Button(top, text='Restart Game', command=lambda: refreash(top))
     restart_button.pack(pady=10)
-    # # 使用messagebox显示游戏结束信息
-    # messagebox.showinfo('游戏结束', message)
 
-    # canvas.create_text(BOARD_SIZE * SQUARE_SIZE / 2, BOARD_SIZE * SQUARE_SIZE / 2, text=message, fill='red',
-    #                    font=('Arial', 24))
-    window.quit()  # 终止主循环
-    window.deiconify()
+def refreash(top):
+    top.destroy()
+    restart_game()
+
+def initialize_board():
+    # Initialize the board state
+    for row in range(3):
+        for col in range(8):
+            if (row + col) % 2 == 1:
+                board[row][col] = AI_COLOR
+    for row in range(5, 8):
+        for col in range(8):
+            if (row + col) % 2 == 1:
+                board[row][col] = PLAYER_COLOR
+
+def create_menu(window):
+    # Create menu
+    menu = tk.Menu(window)
+    window.config(menu=menu)
+
+    # Add menu items
+    rules_menu = tk.Menu(menu)
+    menu.add_cascade(label="Game Rules", menu=rules_menu)
+    rules_menu.add_command(label="View Rules", command=showing_rules)
+
+    difficulty_menu = tk.Menu(menu)
+    menu.add_cascade(label="Difficulty Level", menu=difficulty_menu)
+    difficulty_menu.add_command(label="Easy", command=lambda: game_setting("Easy"))
+    difficulty_menu.add_command(label="Medium", command=lambda: game_setting("Medium"))
+    difficulty_menu.add_command(label="Hard", command=lambda: game_setting("Hard"))
+    menu.add_command(label="Restart Game", command=restart_game)
+
+
+if __name__ == "__main__":
+    # Create window and canvas
+    window = tk.Tk()
+    window.title("Checkers")
+    canvas = tk.Canvas(window, width=8 * 60, height=8 * 60)
+    canvas.pack()
+
+    # Initialize board and bind event
+    initialize_board()
+    canvas.bind("<Button-1>", click_gui)
+
+    # Create menu and draw board
+    create_menu(window)
+    start_board()
+
     window.mainloop()
-
-    # 设置game_over为True
-    global game_over
-    game_over = True
-
-    canvas.create_text(BOARD_SIZE * SQUARE_SIZE / 2, BOARD_SIZE * SQUARE_SIZE / 2, text=message, fill='red',
-                       font=('Arial', 24))
-    window.quit()  # 终止主循环
-    window.deiconify()
-    window.mainloop()
-
-
-window = tk.Tk()
-window.title("Checkers")
-
-canvas = tk.Canvas(window, width=BOARD_SIZE * SQUARE_SIZE, height=BOARD_SIZE * SQUARE_SIZE)
-canvas.pack()
-
-# 初始化棋盘状态
-for row in range(3):
-    for col in range(BOARD_SIZE):
-        if (row + col) % 2 == 1:
-            board[row][col] = AI_COLOR
-
-for row in range(5, BOARD_SIZE):
-    for col in range(BOARD_SIZE):
-        if (row + col) % 2 == 1:
-            board[row][col] = PLAYER_COLOR
-
-# 绑定事件
-canvas.bind("<Button-1>", handle_click)
-
-# 显示菜单
-menu = tk.Menu(window)
-window.config(menu=menu)
-
-difficulty_menu = tk.Menu(menu)
-# 添加菜单项
-rules_menu = tk.Menu(menu)
-
-menu.add_cascade(label="规则说明", menu=rules_menu)
-rules_menu.add_command(label="查看规则", command=show_rules)
-
-menu.add_cascade(label="难度选择", menu=difficulty_menu)
-difficulty_menu.add_command(label="简单", command=lambda: set_difficulty("Easy"))
-difficulty_menu.add_command(label="中等", command=lambda: set_difficulty("Medium"))
-difficulty_menu.add_command(label="困难", command=lambda: set_difficulty("Hard"))
-menu.add_command(label="重开游戏", command=restart_game)
-
-# 绘制棋盘
-draw_board()
-
-window.mainloop()
