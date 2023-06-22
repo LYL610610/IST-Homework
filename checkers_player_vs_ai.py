@@ -44,11 +44,10 @@ desk = Canvas(main_window, width=800, height=800, bg='#FFFFFF')
 desk.pack()
 
 # 初始化一些全局变量
-n2_list = ()  
-ur = 3  
-k_rez = 0  
-o_rez = 0
-poz1_x = -1  
+game_state = 3
+player_score = 0
+ai_score = 0
+selected_piece_x = -1
 is_player_move = True
 alpha = float('-inf')
 beta = float('inf')
@@ -137,27 +136,27 @@ def position_1(event):
 
 # 玩家释放鼠标按钮时的处理函数
 def position_2(event):
-    global poz1_x, poz1_y, poz2_x, poz2_y
+    global selected_piece_x, poz1_y, poz2_x, poz2_y
     global is_player_move
     x, y = event.x // 100, event.y // 100
     if field[y][x] == 1 or field[y][x] == 2:
         desk.coords(red_border, x * 100, y * 100, x * 100 + 100, y * 100 + 100)
-        poz1_x, poz1_y = x, y
+        selected_piece_x, poz1_y = x, y
         # 检查是否有可以跳吃的棋子
         has_jump_moves = has_jump_moves_available()
         if has_jump_moves:
-            print(can_piece_jump(poz1_x, poz1_y))
-            if not can_piece_jump(poz1_x, poz1_y):
+            print(can_piece_jump(selected_piece_x, poz1_y))
+            if not can_piece_jump(selected_piece_x, poz1_y):
                 messagebox.showinfo("提示", "当前有可以跳吃的棋子，请选择可以跳吃的棋子！")
     else:
-        if poz1_x != -1:  # клетка выбрана
+        if selected_piece_x != -1:  # клетка выбрана
             poz2_x, poz2_y = x, y
             if is_player_move:  # ход игрока?
                 player_turn()
                 if not is_player_move:
                     time.sleep(0.5)
                     computer_turn()
-            poz1_x = -1
+            selected_piece_x = -1
             desk.coords(red_border, -5, -5, -5, -5)
 
 # 检查是否有可以跳吃的棋子
@@ -212,42 +211,42 @@ def list_hk():
 def check_hk(tur, n_list, my_list, alpha, beta):  
     global field
     global n2_list
-    global l_rez, k_rez, o_rez
+    global l_rez, player_score, ai_score
     if not my_list:  
         my_list = list_hk()  
 
     if my_list:
         k_pole = copy.deepcopy(field)
-        for ((poz1_x, poz1_y), (poz2_x, poz2_y)) in my_list:  
-            t_list = move(0, poz1_x, poz1_y, poz2_x, poz2_y)
+        for ((selected_piece_x, poz1_y), (poz2_x, poz2_y)) in my_list:
+            t_list = move(0, selected_piece_x, poz1_y, poz2_x, poz2_y)
             if t_list:  
-                check_hk(tur, (n_list + ((poz1_x, poz1_y),)), t_list, alpha, beta)
+                check_hk(tur, (n_list + ((selected_piece_x, poz1_y),)), t_list, alpha, beta)
             else:
                 check_hi(tur, [], alpha, beta)
                 if tur == 1:
-                    t_rez = o_rez / k_rez
+                    t_rez = ai_score / player_score
                     if not n2_list:  
-                        n2_list = (n_list + ((poz1_x, poz1_y), (poz2_x, poz2_y)),)
+                        n2_list = (n_list + ((selected_piece_x, poz1_y), (poz2_x, poz2_y)),)
                         l_rez = t_rez  
                         alpha = max(alpha, t_rez)
                     else:
                         if t_rez == l_rez:
-                            n2_list = n2_list + (n_list + ((poz1_x, poz1_y), (poz2_x, poz2_y)),)
+                            n2_list = n2_list + (n_list + ((selected_piece_x, poz1_y), (poz2_x, poz2_y)),)
                         if t_rez > l_rez:
                             n2_list = ()
-                            n2_list = (n_list + ((poz1_x, poz1_y), (poz2_x, poz2_y)),)
+                            n2_list = (n_list + ((selected_piece_x, poz1_y), (poz2_x, poz2_y)),)
                             l_rez = t_rez  
                             alpha = max(alpha, t_rez)
-                    o_rez = 0
-                    k_rez = 0
+                    ai_score = 0
+                    player_score = 0
 
             field = copy.deepcopy(k_pole)  
             if beta <= alpha:
                 break
     else: 
         s_k, s_i = scan()
-        o_rez += (s_k - s_i)
-        k_rez += 1
+        ai_score += (s_k - s_i)
+        player_score += 1
 
 # list_hi函数用于获取人类玩家的所有可能的移动
 def list_hi():
@@ -260,34 +259,34 @@ def list_hi():
 
 # check_hi函数用于评估人类玩家的所有可能的移动
 def check_hi(tur, my_list, alpha, beta):
-    global field, k_rez, o_rez
-    global ur
+    global field, player_score, ai_score
+    global game_state
     if not my_list:
         my_list = list_hi()
 
     if my_list:  
         k_pole = copy.deepcopy(field)
-        for ((poz1_x, poz1_y), (poz2_x, poz2_y)) in my_list:
-            t_list = move(0, poz1_x, poz1_y, poz2_x, poz2_y)
+        for ((selected_piece_x, poz1_y), (poz2_x, poz2_y)) in my_list:
+            t_list = move(0, selected_piece_x, poz1_y, poz2_x, poz2_y)
             if t_list:  
                 check_hi(tur, t_list, alpha, beta)
             else:
-                if tur < ur:
+                if tur < game_state:
                     check_hk(tur + 1, (), [], alpha, beta)
                 else:
                     s_k, s_i = scan()  
-                    o_rez += (s_k - s_i)
-                    k_rez += 1
-                    beta = min(beta, o_rez / k_rez)
+                    ai_score += (s_k - s_i)
+                    player_score += 1
+                    beta = min(beta, ai_score / player_score)
 
             field = copy.deepcopy(k_pole)  
             if beta <= alpha:
                 break
     else:  
         s_k, s_i = scan()  
-        o_rez += (s_k - s_i)
-        k_rez += 1
-        beta = min(beta, o_rez / k_rez)
+        ai_score += (s_k - s_i)
+        player_score += 1
+        beta = min(beta, ai_score / player_score)
 
 # scan函数用于扫描棋盘，统计双方的棋子数量
 def scan():  
@@ -312,15 +311,15 @@ def scan():
 
 # player_turn函数用于处理人类玩家的回合
 def player_turn():
-    global poz1_x, poz1_y, poz2_x, poz2_y
+    global selected_piece_x, poz1_y, poz2_x, poz2_y
     global is_player_move
     is_player_move = False  
     # 获取人类玩家的所有可能的移动
     my_list = list_hi()
     if my_list:
         # 如果人类玩家选择的移动在所有可能的移动中，那么执行这个移动
-        if ((poz1_x, poz1_y), (poz2_x, poz2_y)) in my_list:
-            t_list = move(1, poz1_x, poz1_y, poz2_x, poz2_y)  
+        if ((selected_piece_x, poz1_y), (poz2_x, poz2_y)) in my_list:
+            t_list = move(1, selected_piece_x, poz1_y, poz2_x, poz2_y)
             if t_list:  
                 is_player_move = True  
         else:
@@ -329,29 +328,29 @@ def player_turn():
     desk.update()  
 
 # move函数用于执行一次移动
-def move(f, poz1_x, poz1_y, poz2_x, poz2_y):
+def move(f, selected_piece_x, poz1_y, poz2_x, poz2_y):
     global field
     # 如果是人类玩家的回合，那么在界面上画出这次移动
-    if f: draw(poz1_x, poz1_y, poz2_x, poz2_y)  
+    if f: draw(selected_piece_x, poz1_y, poz2_x, poz2_y)
     # 如果人类玩家的棋子到达了对方的基地，那么升级这个棋子
-    if poz2_y == 0 and field[poz1_y][poz1_x] == 1:
-        field[poz1_y][poz1_x] = 2
+    if poz2_y == 0 and field[poz1_y][selected_piece_x] == 1:
+        field[poz1_y][selected_piece_x] = 2
     # 如果电脑玩家的棋子到达了对方的基地，那么升级这个棋子
-    if poz2_y == 7 and field[poz1_y][poz1_x] == 3:
-        field[poz1_y][poz1_x] = 4
+    if poz2_y == 7 and field[poz1_y][selected_piece_x] == 3:
+        field[poz1_y][selected_piece_x] = 4
     # 更新棋盘
-    field[poz2_y][poz2_x] = field[poz1_y][poz1_x]
-    field[poz1_y][poz1_x] = 0
+    field[poz2_y][poz2_x] = field[poz1_y][selected_piece_x]
+    field[poz1_y][selected_piece_x] = 0
 
     # 计算移动的方向
     kx = ky = 1
-    if poz1_x < poz2_x:
+    if selected_piece_x < poz2_x:
         kx = -1
     if poz1_y < poz2_y:
         ky = -1
     x_poz, y_poz = poz2_x, poz2_y
     # 如果在移动的过程中吃掉了对方的棋子，那么更新棋盘，并检查是否可以继续吃掉对方的棋子
-    while (poz1_x != x_poz) or (poz1_y != y_poz):
+    while (selected_piece_x != x_poz) or (poz1_y != y_poz):
         x_poz += kx
         y_poz += ky
         if field[y_poz][x_poz] != 0:
@@ -363,7 +362,7 @@ def move(f, poz1_x, poz1_y, poz2_x, poz2_y):
             elif field[poz2_y][poz2_x] == 1 or field[poz2_y][poz2_x] == 2:
                 return check_moves_i1p([], poz2_x, poz2_y)
     if f:
-        draw(poz1_x, poz1_y, poz2_x, poz2_y)
+        draw(selected_piece_x, poz1_y, poz2_x, poz2_y)
 
 # check_moves_k1函数用于检查电脑玩家的所有棋子的所有可能的吃子移动
 def check_moves_k1(my_list):  
