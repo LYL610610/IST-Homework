@@ -35,157 +35,174 @@ KING_VALUE = 20
 EDGE_VALUE = 5
 CENTER_VALUE = 3
 
-def start_board():
-    # Clear the canvas
+def clear_canvas():
     canvas.delete("all")
-    # Draw the squares of the checkerboard
+
+def draw_board():
     for row in range(8):
         for col in range(8):
-            # Calculate the coordinates of the square based on the row and column numbers
-            x1, y1 = col * 60, row * 60
-            x2, y2 = x1 + 60, y1 + 60
-            # Fill the square with gray if it's a black square
-            if (row + col) % 2 == 0:
-                canvas.create_rectangle(x1, y1, x2, y2, fill="#8B4513")
-            # If there's a piece on the square, draw the piece with its color and shape
+            draw_square(row, col)
+
+def draw_square(row, col):
+    x1, y1 = col * 60, row * 60
+    x2, y2 = x1 + 60, y1 + 60
+    if (row + col) % 2 == 0:
+        canvas.create_rectangle(x1, y1, x2, y2, fill="#8B4513")
+
+def draw_pieces():
+    for row in range(8):
+        for col in range(8):
             piece = board[row][col]
             if piece is not None:
-                # Draw a circle with the color of the piece
-                color = "white" if piece == "white" else "black" if piece == "black" else "blue" if piece == "green" else "red"
-                canvas.create_oval(x1 + 5, y1 + 5, x2 - 5, y2 - 5, fill=color)
-            # If the square is a selected piece or a valid move, mark it with a yellow border
-            if selected_piece is not None and (row, col) in get_valid_moves(board, selected_piece[0], selected_piece[1]):
-                canvas.create_rectangle(x1 + 2, y1 + 2, x2 - 2, y2 - 2, outline="black", width=4)
-    # Update the canvas
+                draw_piece(row, col, piece)
+
+def draw_piece(row, col, piece):
+    x1, y1 = col * 60, row * 60
+    x2, y2 = x1 + 60, y1 + 60
+    color = "white" if piece == "white" else "black" if piece == "black" else "blue" if piece == "green" else "red"
+    canvas.create_oval(x1 + 5, y1 + 5, x2 - 5, y2 - 5, fill=color)
+
+def mark_selected_and_valid_moves():
+    if selected_piece is not None:
+        for row, col in get_valid_moves(board, selected_piece[0], selected_piece[1]):
+            mark_square(row, col)
+
+def mark_square(row, col):
+    x1, y1 = col * 60, row * 60
+    x2, y2 = x1 + 60, y1 + 60
+    canvas.create_rectangle(x1 + 2, y1 + 2, x2 - 2, y2 - 2, outline="black", width=4)
+
+def update_canvas():
     canvas.update()
 
+def start_board():
+    clear_canvas()
+    draw_board()
+    draw_pieces()
+    mark_selected_and_valid_moves()
+    update_canvas()
 
+
+
+def is_within_board(row, col):
+    # 检查给定的行和列是否在棋盘内
+    return 0 <= row < 8 and 0 <= col < 8
+
+def is_square_empty(game_board, row, col):
+    # 检查给定的棋盘位置是否为空
+    return game_board[row][col] is None
+
+def is_normal_move(start_row, end_row):
+    # 检查是否为普通移动（即只移动一格）
+    return abs(end_row - start_row) == 1
+
+def is_jump_move(start_row, end_row):
+    # 检查是否为跳跃移动（即跳过一个棋子）
+    return abs(end_row - start_row) == 2
+
+def is_valid_jump(game_board, start_row, start_col, end_row, end_col):
+    # 检查跳跃是否合法（即跳过的棋子是否为对手的棋子）
+    mid_row, mid_col = (start_row + end_row) // 2, (start_col + end_col) // 2
+    return game_board[mid_row][mid_col] not in (None, game_board[start_row][start_col])
+
+# def check_move(game_board, start_row, start_col, end_row, end_col):
+#     # 检查从起始位置到目标位置的移动是否合法
+#     if not is_within_board(end_row, end_col) or not is_square_empty(game_board, end_row, end_col):
+#         return False
+#     if is_normal_move(start_row, end_row):
+#         return True
+#     elif is_jump_move(start_row, end_row):
+#         return is_valid_jump(game_board, start_row, start_col, end_row, end_col)
+#     return False
 def check_move(game_board, start_row, start_col, end_row, end_col):
-    piece_color = game_board[start_row][start_col]
-
-    # Define a list to store all possible colors of the opponent's pieces
-    enemy_piece_colors = []
-    if piece_color in ["white", "green"]:
-        enemy_piece_colors = ["black", "yellow"]
-    elif piece_color in ["black", "yellow"]:
-        enemy_piece_colors = ["white", "green"]
-
-    # If the target position is not within the range of the board, or is not empty, return False
-    if not (0 <= end_row < 8 and 0 <= end_col < 8) or game_board[end_row][end_col] is not None:
+    # 检查从起始位置到目标位置的移动是否合法
+    if not is_within_board(end_row, end_col) or not is_square_empty(game_board, end_row, end_col):
         return False
-
-    # If the absolute difference between the target position and the starting position is 1, it means it is a normal move
-    if abs(end_row - start_row) == 1:
-        # If the piece is a king, it can move one square in any direction
-        if piece_color in ["green", "blue"]:
-            # If the target position is the opponent's piece, return False
-            if game_board[end_row][end_col] in enemy_piece_colors:
-                return False
-            else:
-                return True
-        # If the piece is a normal player piece, it can only move one square up
-        elif piece_color == "white" and end_row < start_row:
-            # If the target position is the opponent's piece, return False
-            if game_board[end_row][end_col] in enemy_piece_colors:
-                return False
-            else:
-                return True
-        # If the piece is a normal AI piece, it can only move one square down
-        elif piece_color == "black" and end_row > start_row:
-            # If the target position is the opponent's piece, return False
-            if game_board[end_row][end_col] in enemy_piece_colors:
-                return False
-            else:
-                return True
-
-    # If the absolute difference between the target position and the starting position is 2, it means it is a jump move
-    elif abs(end_row - start_row) == 2:
-        # Calculate the row and column numbers of the middle position of the jump
-        mid_row = (start_row + end_row) // 2
-        mid_col = (start_col + end_col) // 2
-
-        # If there is an opponent's piece in the middle position, it can jump over it
-        if game_board[mid_row][mid_col] is not None and game_board[mid_row][mid_col] in enemy_piece_colors:
-            return True
-
-        # If there is own piece in the middle position, it cannot jump over it
-        # Define a list to store all possible colors of own pieces
-        own_piece_colors = [piece_color, piece_color.upper()]
-        if piece_color in ["white", "green"]:
-            own_piece_colors.append("green")
-        elif piece_color in ["black", "yellow"]:
-            own_piece_colors.append("yellow")
-
-        if game_board[mid_row][mid_col] is not None and game_board[mid_row][mid_col] in own_piece_colors:
-            return False
-
-    # In all other cases, return False
+    if game_board[start_row][start_col] == "black" and start_row >= end_row:
+        return False  # 如果是黑棋，只能向下移动
+    if game_board[start_row][start_col] == "white" and start_row <= end_row:
+        return False  # 如果是白棋，只能向上移动
+    if is_normal_move(start_row, end_row):
+        return True
+    elif is_jump_move(start_row, end_row):
+        return is_valid_jump(game_board, start_row, start_col, end_row, end_col)
     return False
+
+
 
 # Returns all legal moves for a piece, parameters are the board, row number, and column number
 # Function to get all possible legal moves for a given piece
-def get_valid_moves(board, row, col):
+def get_possible_moves(board, row, col):
+    # 获取给定棋子可能的移动方向和距离
     piece = board[row][col]
-    moves = []
-    def check_and_add_moves(directions):
-        for dx, dy in directions:
-            new_row, new_col = row + dx, col + dy
-            if check_move(board, row, col, new_row, new_col):
-                moves.append((new_row, new_col))
-            new_row, new_col = row + 2 * dx, col + 2 * dy
-            if check_move(board, row, col, new_row, new_col):
-                moves.append((new_row, new_col))
-    if piece in ["green", "yellow"]:
-        check_and_add_moves([(-1, -1), (-1, 1), (1, -1), (1, 1)])
-    elif piece == "white":
-        check_and_add_moves([(-1, -1), (-1, 1)])
+    if piece in ("white", "red"):
+        directions = ((-1, -1), (-1, 1))  # 白棋或红棋（即白色的王棋）只能向上移动
     elif piece == "black":
-        check_and_add_moves([(1, -1), (1, 1)])
-    return moves
+        directions = ((1, -1), (1, 1))  # 黑棋只能向下移动
+    else:
+        directions = ((-1, -1), (-1, 1), (1, -1), (1, 1))  # 王棋可以向任何方向移动
+
+    possible_moves = []
+    for dx, dy in directions:
+        for dist in (1, 2):
+            possible_moves.append((row + dx * dist, col + dy * dist))
+    return possible_moves
+
+
+def filter_valid_moves(board, row, col, possible_moves):
+    # 过滤出合法的移动
+    valid_moves = []
+    for new_row, new_col in possible_moves:
+        if check_move(board, row, col, new_row, new_col):
+            valid_moves.append((new_row, new_col))
+    return valid_moves
+
+def get_valid_moves(board, row, col):
+    # 获取给定棋子的所有合法移动
+    possible_moves = get_possible_moves(board, row, col)
+    return filter_valid_moves(board, row, col, possible_moves)
+
+
+def get_jump_moves(row, col):
+    # 获取给定棋子可能的跳跃方向
+    jump_moves = []
+    for dx, dy in ((-1, -1), (-1, 1), (1, -1), (1, 1)):
+        jump_moves.append((row + dx * 2, col + dy * 2))
+    return jump_moves
+
+def has_valid_jump(board, row, col, jump_moves):
+    # 检查是否有合法的跳跃
+    for new_row, new_col in jump_moves:
+        if check_move(board, row, col, new_row, new_col):
+            return True
+    return False
 
 def jump_check(row, col):
-    # Check if a piece has a chance to jump
-    piece = board[row][col]
+    # 检查给定位置的棋子是否有跳跃的可能
+    jump_moves = get_jump_moves(row, col)
+    return has_valid_jump(board, row, col, jump_moves)
 
-    if piece is None:
-        return False
-
-    directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-    for dx, dy in directions:
-        move_row, move_col = row + dx, col + dy
-        jump_row, jump_col = row + 2 * dx, col + 2 * dy
-
-        if cross_board_check(jump_row, jump_col) and board[jump_row][jump_col] is None:
-            # If the cell after the jump is empty
-            if (piece == PLAYER_COLOR or piece == "white king") and move_row < row and board[move_row][move_col] in [AI_COLOR, "black king"]:
-                return True
-            elif (piece == AI_COLOR or piece == "black king") and move_row > row and board[move_row][move_col] in [PLAYER_COLOR, "white king"]:
-                return True
-
-    return False
 
 def cross_board_check(x, y):
     # Check if a coordinate is on the board
     return 0 <= x < 8 and 0 <= y < 8
 
+def is_black_piece_at_top(x, y):
+    # 检查给定位置是否有黑棋，并且在棋盘的顶部
+    return board[x][y] == "black" and x == 0
+
+def is_white_piece_at_bottom(x, y):
+    # 检查给定位置是否有白棋，并且在棋盘的底部
+    return board[x][y] == "white" and x == 7
+
 def become_king(x, y):
-    # Check if a piece can be promoted to king, and update its status
-    piece = board[x][y]
+    # 检查给定位置的棋子是否应该成为王棋
+    if is_black_piece_at_top(x, y):
+        board[x][y] = "green"
+    elif is_white_piece_at_bottom(x, y):
+        board[x][y] = "red"
 
-    if piece is None:
-        return False
 
-    if piece == PLAYER_COLOR and x == 0:
-        board[x][y] = "white king"
-        return True
-
-    elif piece == AI_COLOR and x == 7:
-        board[x][y] = "black king"
-        return True
-
-    return False
-
-# Move a piece, with parameters for the starting position and the target position
 def piece_move(board, start_row, start_col, end_row, end_col, is_crowning=False):
     # Get the color of the piece
     piece_color = board[start_row][start_col]
@@ -216,6 +233,7 @@ def piece_move(board, start_row, start_col, end_row, end_col, is_crowning=False)
     board[start_row][start_col] = None
 
     return board
+
 
 def get_all_moves(board: List[List[str]], color: str) -> List[Tuple[int, int, int, int]]:
     all_moves = [(row, col, *move)
