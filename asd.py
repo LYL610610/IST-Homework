@@ -30,7 +30,6 @@ CENTER_VALUE = 3  # 中心棋子的价值
 def draw_board():
     # 清空画布
     canvas.delete("all")
-
     # 画出棋盘的方格
     for row in range(BOARD_SIZE):
         for col in range(BOARD_SIZE):
@@ -39,11 +38,9 @@ def draw_board():
             y1 = row * SQUARE_SIZE
             x2 = x1 + SQUARE_SIZE
             y2 = y1 + SQUARE_SIZE
-
             # 如果方格是黑色，就用灰色填充
             if (row + col) % 2 == 0:
                 canvas.create_rectangle(x1, y1, x2, y2, fill="gray")
-
             # 如果方格有棋子，就画出棋子的颜色和形状
             if board[row][col] is not None:
                 # 根据棋子的颜色，画出一个圆形
@@ -55,21 +52,19 @@ def draw_board():
                     canvas.create_oval(x1 + 5, y1 + 5, x2 - 5, y2 - 5, fill="pink")
                 elif board[row][col] == AI_KING_COLOR:
                     canvas.create_oval(x1 + 5, y1 + 5, x2 - 5, y2 - 5, fill="red")
-
                 # 如果棋子是升王的，就在圆形上画一个差不多的星形
                 if board[row][col] in (PLAYER_KING_COLOR, AI_KING_COLOR):
                     canvas.create_polygon(x1 + 30, y1 + 10, x1 + 20, y1 + 20, x1 + 10, y1 + 10,
                                           x1 + 15, y1 + 30, x1 + 5, y1 + 40, x1 + 30, y1 + 35,
                                           x1 + 55, y1 + 40, x1 + 45, y1 + 30, x1 + 50, y1 + 10,
                                           x1 + 30, y1 + 15, fill="yellow")
-
             # 如果方格是选中的棋子或者合法的走法，就用红色的边框标记出来
             if selected_piece is not None and (row, col) in get_valid_moves(board, selected_piece[0],
                                                                             selected_piece[1]):
                 canvas.create_rectangle(x1 + 2, y1 + 2, x2 - 2, y2 - 2, outline="red", width=4)
-
     # 更新画布
     canvas.update()
+
 
 def is_valid_move(board, row1, col1, row2, col2):
     color = board[row1][col1]
