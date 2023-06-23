@@ -69,27 +69,31 @@ def start_new_game():
 
 
 def draw(start_x, start_y, end_x, end_y):
-    global field, red_border, green_border
+    global field, red_border, blue_border
     cell_size = 100
     desk.delete('all')
-    red_border = desk.create_rectangle(-5, -5, -5, -5, outline="red", width=5)
-    green_border = desk.create_rectangle(-5, -5, -5, -5, outline="green", width=5)
+    red_border = desk.create_rectangle(-5, -5, -5, -5, outline="red", width=10)
+    blue_border = desk.create_rectangle(-5, -5, -5, -5, outline="blue", width=5)
 
     # 绘制棋盘
     for x in range(0, 8 * cell_size, 2 * cell_size):
         for y in range(cell_size, 8 * cell_size, 2 * cell_size):
-            desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="white")  # 红色方块
+            rect = desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="white")  # 红色方块
+            desk.tag_lower(rect)
     for x in range(cell_size, 8 * cell_size, 2 * cell_size):
         for y in range(0, 8 * cell_size, 2 * cell_size):
-            desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="white")  # 黑色方块
+            rect = desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="white")  # 黑色方块
+            desk.tag_lower(rect)
 
     # 对于剩下的白色方块，我们也需要将它们填充为黑色
     for x in range(0, 8 * cell_size, 2 * cell_size):
         for y in range(0, 8 * cell_size, 2 * cell_size):
-            desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="darkred")  # 黑色方块
+            rect = desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="darkred")  # 黑色方块
+            desk.tag_lower(rect)
     for x in range(cell_size, 8 * cell_size, 2 * cell_size):
         for y in range(cell_size, 8 * cell_size, 2 * cell_size):
-            desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="darkred")  # 黑色方块
+            rect = desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="darkred")  # 黑色方块
+            desk.tag_lower(rect)
 
     # 绘制棋子
     for y in range(8):
@@ -137,11 +141,33 @@ def show_end_message(end_reason):
         is_player_move = True
 
 
+def get_possible_moves(x, y):
+    # 初始化可能的移动位置列表
+    possible_moves = []
+    # 获取棋子的类型
+    piece_type = field[y][x]
+    # 检查四个方向的移动
+    for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+        # 如果是普通棋子，只能向前移动
+        if piece_type == 1 and dy == -1 or piece_type == 2 and dy == 1 or piece_type in [3, 4]:
+            new_x, new_y = x + dx, y + dy
+            # 检查新的位置是否在棋盘内
+            if 0 <= new_x < 8 and 0 <= new_y < 8:
+                # 检查新的位置是否为空
+                if field[new_y][new_x] == 0:
+                    possible_moves.append((new_x, new_y))
+                # 检查是否可以跳吃
+                elif 0 <= new_x + dx < 8 and 0 <= new_y + dy < 8 and field[new_y + dy][new_x + dx] == 0:
+                    possible_moves.append((new_x + dx, new_y + dy))
+    return possible_moves
+
+
+
 
 # 处理玩家点击棋盘时的事件
 def handle_board_click(event):
     grid_x, grid_y = event.x // 100, event.y // 100
-    desk.coords(green_border, grid_x * 100, grid_y * 100, grid_x * 100 + 100, grid_y * 100 + 100)
+    desk.coords(blue_border, grid_x * 100, grid_y * 100, grid_x * 100 + 100, grid_y * 100 + 100)
 
 # 处理玩家释放鼠标按钮时的事件
 def handle_mouse_release(event):
@@ -153,6 +179,10 @@ def handle_mouse_release(event):
         selected_piece_x, selected_piece_y = grid_x, grid_y
         # 检查是否有可以跳吃的棋子
         has_jump_moves = has_jump_moves_available()
+        possible_moves = get_possible_moves(selected_piece_x, selected_piece_y)
+        for move in possible_moves:
+            x, y = move
+            desk.create_rectangle(x * 100, y * 100, (x + 1) * 100, (y + 1) * 100, fill='yellow')
         if has_jump_moves:
             print(can_piece_jump(selected_piece_x, selected_piece_y))
             if not can_piece_jump(selected_piece_x, selected_piece_y):
