@@ -15,12 +15,14 @@ def restart_game():
 
 # 定义选择游戏难度的回调函数-普通
 def select_difficulty_normal():
+    global alpha,beta
     alpha = float('inf')
     beta = float('-inf')
     return alpha,beta
 
 # 定义选择游戏难度的回调函数-普通
 def select_difficulty_hard():
+    global alpha, beta
     alpha = float('-inf')
     beta = float('inf')
     return alpha,beta
@@ -152,15 +154,15 @@ def draw(start_x, start_y, end_x, end_y):
 
 # 显示游戏结束的消息，并询问玩家是否要开始新游戏
 def show_end_message(end_reason):
-    global is_player_move, start_new_game
+    global is_player_move, i
     end_message = 'Game Over'
     if end_reason == 1:
-        start_new_game = messagebox.askyesno(title=end_message, message='You won!\nClick "Yes" to start a new game.', icon='info')
+        i = messagebox.askyesno(title=end_message, message='You won!\nClick "Yes" to start a new game.', icon='info')
     if end_reason == 2:
-        start_new_game = messagebox.askyesno(title=end_message, message='You lost!\nClick "Yes" to start a new game.', icon='info')
+        i = messagebox.askyesno(title=end_message, message='You lost!\nClick "Yes" to start a new game.', icon='info')
     if end_reason == 3:
-        start_new_game = messagebox.askyesno(title=end_message, message='No more moves.\nClick "Yes" to start a new game.', icon='info')
-    if start_new_game:
+        m = messagebox.askyesno(title=end_message, message='No more moves.\nClick "Yes" to start a new game.', icon='info')
+    if i:
         start_new_game()
         draw(-1, -1, -1, -1)
         is_player_move = True
@@ -244,7 +246,7 @@ def handle_mouse_release(event):
 
 # Check if there are any pieces that can make a jump move
 def has_jump_moves_available():
-    return len(check_moves_i1(get_human_possible_moves())) > 0
+    return len(check_moves_eat2(get_human_possible_moves())) > 0
 
 # Check if a specific piece can make a jump move
 def can_piece_jump(piece_x, piece_y):
@@ -304,10 +306,10 @@ def computer_turn():
 # get_computer_possible_moves函数用于获取电脑玩家的所有可能的移动
 def get_computer_possible_moves():
     # 首先尝试获取所有可以吃掉对手棋子的移动
-    my_list = check_moves_k1([])  
+    my_list = check_moves_ai([])
     # 如果没有可以吃掉对手棋子的移动，那么获取所有普通的移动
     if not my_list:
-        my_list = check_moves_k2p([])
+        my_list = check_moves_noeat([])
     return my_list
 
 # # evaluate_all_moves函数用于评估电脑玩家的所有可能的移动
@@ -465,7 +467,7 @@ def evaluate_all_moves(turn, move_sequence, possible_moves, alpha, beta):
 # 获取人类玩家所有可能的移动
 def get_human_possible_moves():
     # 尝试获取所有可以吃掉对手棋子的移动
-    possible_moves = check_moves_i1([])
+    possible_moves = check_moves_eat2([])
     # 如果没有可以吃掉对手棋子的移动，那么获取所有普通的移动
     if not possible_moves:
         possible_moves = check_moves_i2([])
@@ -540,124 +542,290 @@ def player_turn():
     desk.update()
 
 # move函数用于执行一次移动
-def move(f, selected_piece_x, selected_piece_y, target_x, target_y):
+# def move(f, selected_piece_x, selected_piece_y, target_x, target_y):
+#     global field
+#     # 如果是人类玩家的回合，那么在界面上画出这次移动
+#     if f: draw(selected_piece_x, selected_piece_y, target_x, target_y)
+#     # 如果人类玩家的棋子到达了对方的基地，那么升级这个棋子
+#     if target_y == 0 and field[selected_piece_y][selected_piece_x] == 1:
+#         field[selected_piece_y][selected_piece_x] = 2
+#     # 如果电脑玩家的棋子到达了对方的基地，那么升级这个棋子
+#     if target_y == 7 and field[selected_piece_y][selected_piece_x] == 3:
+#         field[selected_piece_y][selected_piece_x] = 4
+#     # 更新棋盘
+#     field[target_y][target_x] = field[selected_piece_y][selected_piece_x]
+#     field[selected_piece_y][selected_piece_x] = 0
+#
+#     # 计算移动的方向
+#     kx = ky = 1
+#     if selected_piece_x < target_x:
+#         kx = -1
+#     if selected_piece_y < target_y:
+#         ky = -1
+#     x_poz, y_poz = target_x, target_y
+#     # 如果在移动的过程中吃掉了对方的棋子，那么更新棋盘，并检查是否可以继续吃掉对方的棋子
+#     while (selected_piece_x != x_poz) or (selected_piece_y != y_poz):
+#         x_poz += kx
+#         y_poz += ky
+#         if field[y_poz][x_poz] != 0:
+#             field[y_poz][x_poz] = 0
+#             if f:
+#                 draw(-1, -1, -1, -1)
+#             if field[target_y][target_x] == 3 or field[target_y][target_x] == 4:
+#                 return check_moves_k1p([], target_x, target_y)
+#             elif field[target_y][target_x] == 1 or field[target_y][target_x] == 2:
+#                 return check_moves_i1p([], target_x, target_y)
+#     if f:
+#         draw(selected_piece_x, selected_piece_y, target_x, target_y)
+
+def move(is_human_turn, selected_piece_x, selected_piece_y, target_x, target_y):
     global field
     # 如果是人类玩家的回合，那么在界面上画出这次移动
-    if f: draw(selected_piece_x, selected_piece_y, target_x, target_y)
-    # 如果人类玩家的棋子到达了对方的基地，那么升级这个棋子
+    if is_human_turn:
+        draw_move(selected_piece_x, selected_piece_y, target_x, target_y)
+    # 检查并升级棋子
+    upgrade_piece(selected_piece_x, selected_piece_y, target_x, target_y)
+    # 更新棋盘
+    update_board(selected_piece_x, selected_piece_y, target_x, target_y)
+    # 计算移动的方向
+    direction_x, direction_y = calculate_direction(selected_piece_x, selected_piece_y, target_x, target_y)
+    # 如果在移动的过程中吃掉了对方的棋子，那么更新棋盘，并检查是否可以继续吃掉对方的棋子
+    return check_and_execute_capture(is_human_turn, selected_piece_x, selected_piece_y, target_x, target_y, direction_x, direction_y)
+
+def draw_move(selected_piece_x, selected_piece_y, target_x, target_y):
+    draw(selected_piece_x, selected_piece_y, target_x, target_y)
+
+def upgrade_piece(selected_piece_x, selected_piece_y, target_x, target_y):
     if target_y == 0 and field[selected_piece_y][selected_piece_x] == 1:
         field[selected_piece_y][selected_piece_x] = 2
-    # 如果电脑玩家的棋子到达了对方的基地，那么升级这个棋子
     if target_y == 7 and field[selected_piece_y][selected_piece_x] == 3:
         field[selected_piece_y][selected_piece_x] = 4
-    # 更新棋盘
+
+def update_board(selected_piece_x, selected_piece_y, target_x, target_y):
     field[target_y][target_x] = field[selected_piece_y][selected_piece_x]
     field[selected_piece_y][selected_piece_x] = 0
 
-    # 计算移动的方向
-    kx = ky = 1
-    if selected_piece_x < target_x:
-        kx = -1
-    if selected_piece_y < target_y:
-        ky = -1
-    x_poz, y_poz = target_x, target_y
-    # 如果在移动的过程中吃掉了对方的棋子，那么更新棋盘，并检查是否可以继续吃掉对方的棋子
-    while (selected_piece_x != x_poz) or (selected_piece_y != y_poz):
-        x_poz += kx
-        y_poz += ky
-        if field[y_poz][x_poz] != 0:
-            field[y_poz][x_poz] = 0
-            if f:
-                draw(-1, -1, -1, -1)  
-            if field[target_y][target_x] == 3 or field[target_y][target_x] == 4:
-                return check_moves_k1p([], target_x, target_y)
-            elif field[target_y][target_x] == 1 or field[target_y][target_x] == 2:
+def calculate_direction(selected_piece_x, selected_piece_y, target_x, target_y):
+    direction_x = -1 if selected_piece_x < target_x else 1
+    direction_y = -1 if selected_piece_y < target_y else 1
+    return direction_x, direction_y
+
+def check_and_execute_capture(is_human_turn, selected_piece_x, selected_piece_y, target_x, target_y, direction_x, direction_y):
+    x_position, y_position = target_x, target_y
+    while (selected_piece_x != x_position) or (selected_piece_y != y_position):
+        x_position += direction_x
+        y_position += direction_y
+        if field[y_position][x_position] != 0:
+            field[y_position][x_position] = 0
+            if is_human_turn:
+                draw(-1, -1, -1, -1)
+            if field[target_y][target_x] in [3, 4]:
+                return check_moves_eat([], target_x, target_y)
+            elif field[target_y][target_x] in [1, 2]:
                 return check_moves_i1p([], target_x, target_y)
-    if f:
+    if is_human_turn:
         draw(selected_piece_x, selected_piece_y, target_x, target_y)
 
-# check_moves_k1函数用于检查电脑玩家的所有棋子的所有可能的吃子移动
-def check_moves_k1(my_list):  
-    for y in range(8): 
-        for x in range(8):
-            # 检查每个棋子的所有可能的吃子移动
-            my_list = check_moves_k1p(my_list, x, y)
-    return my_list
 
-# check_moves_k1p函数用于检查一个棋子的所有可能的吃子移动
-def check_moves_k1p(my_list, x, y):
+# # check_moves_ai函数用于检查电脑玩家的所有棋子的所有可能的吃子移动
+# def check_moves_ai(my_list):
+#     for y in range(8):
+#         for x in range(8):
+#             # 检查每个棋子的所有可能的吃子移动
+#             my_list = check_moves_k1p(my_list, x, y)
+#     return my_list
+
+# check_moves_ai函数用于检查电脑玩家的所有棋子的所有可能的吃子移动
+def check_moves_ai(possible_moves):
+    for y_coordinate in range(8):
+        for x_coordinate in range(8):
+            # 检查每个棋子的所有可能的吃子移动
+            possible_moves = check_possible_moves_for_piece(possible_moves, x_coordinate, y_coordinate)
+    return possible_moves
+
+def check_possible_moves_for_piece(possible_moves, piece_x, piece_y):
+    return check_moves_eat(possible_moves, piece_x, piece_y)
+
+
+# # check_moves_eat函数用于检查一个棋子的所有可能的吃子移动
+# def check_moves_k1p(my_list, x, y):
+#     # 如果这个棋子是电脑玩家的普通棋子
+#     if field[y][x] == 3:
+#         # 检查所有可能的吃子方向
+#         for ix, iy in (-1, -1), (-1, 1), (1, -1), (1, 1):
+#             # 如果吃子的方向是合法的，并且可以吃掉人类玩家的棋子
+#             if 0 <= y + iy + iy <= 7 and 0 <= x + ix + ix <= 7:
+#                 if field[y + iy][x + ix] == 1 or field[y + iy][x + ix] == 2:
+#                     if field[y + iy + iy][x + ix + ix] == 0:
+#                         # 添加这个吃子移动到列表中
+#                         my_list.append(((x, y), (x + ix + ix, y + iy + iy)))
+#     # 如果这个棋子是电脑玩家的王棋
+#     if field[y][x] == 4:
+#         for ix, iy in (-1, -1), (-1, 1), (1, -1), (1, 1):
+#             osh = 0
+#             for k in range(1, 8):
+#                 if 0 <= y + iy * k <= 7 and 0 <= x + ix * k <= 7:
+#                     if osh == 1:
+#                         # 添加这个吃子移动到列表中
+#                         my_list.append(((x, y), (x + ix * k, y + iy * k)))
+#                     if field[y + iy * k][x + ix * k] == 1 or field[y + iy * k][x + ix * k] == 2:
+#                         osh += 1
+#                     if field[y + iy * k][x + ix * k] == 3 or field[y + iy * k][x + ix * k] == 4 or osh == 2:
+#                         if osh > 0:
+#                             # 如果不能吃子，那么删除这个移动
+#                             my_list.pop()
+#                         break
+#     return my_list
+
+# check_moves_eat函数用于检查一个棋子的所有可能的吃子移动
+def check_moves_eat(possible_moves, piece_x, piece_y):
     # 如果这个棋子是电脑玩家的普通棋子
-    if field[y][x] == 3:
+    if field[piece_y][piece_x] == 3:
         # 检查所有可能的吃子方向
-        for ix, iy in (-1, -1), (-1, 1), (1, -1), (1, 1):
-            # 如果吃子的方向是合法的，并且可以吃掉人类玩家的棋子
-            if 0 <= y + iy + iy <= 7 and 0 <= x + ix + ix <= 7:
-                if field[y + iy][x + ix] == 1 or field[y + iy][x + ix] == 2:
-                    if field[y + iy + iy][x + ix + ix] == 0:
-                        # 添加这个吃子移动到列表中
-                        my_list.append(((x, y), (x + ix + ix, y + iy + iy)))
+        possible_moves = check_regular_piece_moves(possible_moves, piece_x, piece_y)
     # 如果这个棋子是电脑玩家的王棋
-    if field[y][x] == 4:  
-        for ix, iy in (-1, -1), (-1, 1), (1, -1), (1, 1):
-            osh = 0  
-            for k in range(1, 8):
-                if 0 <= y + iy * k <= 7 and 0 <= x + ix * k <= 7:
-                    if osh == 1:
-                        # 添加这个吃子移动到列表中
-                        my_list.append(((x, y), (x + ix * k, y + iy * k)))
-                    if field[y + iy * k][x + ix * k] == 1 or field[y + iy * k][x + ix * k] == 2:
-                        osh += 1
-                    if field[y + iy * k][x + ix * k] == 3 or field[y + iy * k][x + ix * k] == 4 or osh == 2:
-                        if osh > 0:
-                            # 如果不能吃子，那么删除这个移动
-                            my_list.pop()
-                        break
-    return my_list
+    elif field[piece_y][piece_x] == 4:
+        possible_moves = check_king_piece_moves(possible_moves, piece_x, piece_y)
+    return possible_moves
 
-# check_moves_k2p函数用于检查电脑玩家的所有棋子的所有可能的非吃子移动
-def check_moves_k2p(my_list):
-    for y in range(8):
-        for x in range(8):
+def check_regular_piece_moves(possible_moves, piece_x, piece_y):
+    for direction_x, direction_y in (-1, -1), (-1, 1), (1, -1), (1, 1):
+        # 如果吃子的方向是合法的，并且可以吃掉人类玩家的棋子
+        if is_valid_direction(piece_x, piece_y, direction_x * 2, direction_y * 2):
+            if is_opponent_piece(piece_x, piece_y, direction_x, direction_y):
+                if is_empty_spot(piece_x, piece_y, direction_x * 2, direction_y * 2):
+                    # 添加这个吃子移动到列表中
+                    possible_moves.append(((piece_x, piece_y), (piece_x + direction_x * 2, piece_y + direction_y * 2)))
+    return possible_moves
+
+def check_king_piece_moves(possible_moves, piece_x, piece_y):
+    for direction_x, direction_y in (-1, -1), (-1, 1), (1, -1), (1, 1):
+        opponent_encountered = 0
+        for step in range(1, 8):
+            if is_valid_direction(piece_x, piece_y, direction_x * step, direction_y * step):
+                if opponent_encountered == 1:
+                    # 添加这个吃子移动到列表中
+                    possible_moves.append(((piece_x, piece_y), (piece_x + direction_x * step, piece_y + direction_y * step)))
+                if is_opponent_piece(piece_x, piece_y, direction_x * step, direction_y * step):
+                    opponent_encountered += 1
+                if is_own_piece(piece_x, piece_y, direction_x * step, direction_y * step) or opponent_encountered == 2:
+                    if opponent_encountered > 0:
+                        # 如果不能吃子，那么删除这个移动
+                        possible_moves.pop()
+                    break
+    return possible_moves
+
+def is_valid_direction(piece_x, piece_y, direction_x, direction_y):
+    return 0 <= piece_y + direction_y <= 7 and 0 <= piece_x + direction_x <= 7
+
+def is_opponent_piece(piece_x, piece_y, direction_x, direction_y):
+    return field[piece_y + direction_y][piece_x + direction_x] in [1, 2]
+
+def is_own_piece(piece_x, piece_y, direction_x, direction_y):
+    return field[piece_y + direction_y][piece_x + direction_x] in[3, 4]
+
+def is_empty_spot(piece_x, piece_y, direction_x, direction_y):
+    return field[piece_y + direction_y][piece_x + direction_x] == 0
+
+
+# # check_moves_k2p函数用于检查电脑玩家的所有棋子的所有可能的非吃子移动
+# def check_moves_k2p(my_list):
+#     for y in range(8):
+#         for x in range(8):
+#             # 如果这个棋子是电脑玩家的普通棋子
+#             if field[y][x] == 3:
+#                 # 检查所有可能的非吃子方向
+#                 for ix, iy in (-1, 1), (1, 1):
+#                     if 0 <= y + iy <= 7 and 0 <= x + ix <= 7:
+#                         # 如果这个方向是空的，那么可以移动
+#                         if field[y + iy][x + ix] == 0:
+#                             my_list.append(((x, y), (x + ix, y + iy)))
+#                         # 如果这个方向是人类玩家的棋子，那么可以吃子
+#                         if field[y + iy][x + ix] == 1 or field[y + iy][x + ix] == 2:
+#                             if 0 <= y + iy * 2 <= 7 and 0 <= x + ix * 2 <= 7:
+#                                 if field[y + iy * 2][x + ix * 2] == 0:
+#                                     my_list.append(((x, y), (
+#                                         x + ix * 2, y + iy * 2)))
+#             # 如果这个棋子是电脑玩家的王棋
+#             if field[y][x] == 4:
+#                 # 检查所有可能的非吃子方向
+#                 for ix, iy in (-1, -1), (-1, 1), (1, -1), (1, 1):
+#                     osh = 0
+#                     for k in range(1, 8):
+#                         if 0 <= y + iy * k <= 7 and 0 <= x + ix * k <= 7:
+#                             # 如果这个方向是空的，那么可以移动
+#                             if field[y + iy * k][x + ix * k] == 0:
+#                                 my_list.append(((x, y), (x + ix * k, y + iy * k)))
+#                             # 如果这个方向是人类玩家的棋子，那么可以吃子
+#                             if field[y + iy * k][x + ix * k] == 1 or field[y + iy * k][x + ix * k] == 2:
+#                                 osh += 1
+#                             # 如果这个方向是电脑玩家的棋子，那么不能移动
+#                             if field[y + iy * k][x + ix * k] == 3 or field[y + iy * k][x + ix * k] == 4 or osh == 2:
+#                                 break
+#     return my_list
+
+# check_moves_noeat函数用于检查电脑玩家的所有棋子的所有可能的非吃子移动
+def check_moves_noeat(possible_moves):
+    for y_coordinate in range(8):
+        for x_coordinate in range(8):
             # 如果这个棋子是电脑玩家的普通棋子
-            if field[y][x] == 3:
+            if field[y_coordinate][x_coordinate] == 3:
                 # 检查所有可能的非吃子方向
-                for ix, iy in (-1, 1), (1, 1):
-                    if 0 <= y + iy <= 7 and 0 <= x + ix <= 7:
-                        # 如果这个方向是空的，那么可以移动
-                        if field[y + iy][x + ix] == 0:
-                            my_list.append(((x, y), (x + ix, y + iy)))
-                        # 如果这个方向是人类玩家的棋子，那么可以吃子
-                        if field[y + iy][x + ix] == 1 or field[y + iy][x + ix] == 2:
-                            if 0 <= y + iy * 2 <= 7 and 0 <= x + ix * 2 <= 7:
-                                if field[y + iy * 2][x + ix * 2] == 0:
-                                    my_list.append(((x, y), (
-                                        x + ix * 2, y + iy * 2)))
+                possible_moves = check_regular_piece_non_capture_moves(possible_moves, x_coordinate, y_coordinate)
             # 如果这个棋子是电脑玩家的王棋
-            if field[y][x] == 4:
+            elif field[y_coordinate][x_coordinate] == 4:
                 # 检查所有可能的非吃子方向
-                for ix, iy in (-1, -1), (-1, 1), (1, -1), (1, 1):
-                    osh = 0
-                    for k in range(1, 8):
-                        if 0 <= y + iy * k <= 7 and 0 <= x + ix * k <= 7:
-                            # 如果这个方向是空的，那么可以移动
-                            if field[y + iy * k][x + ix * k] == 0:
-                                my_list.append(((x, y), (x + ix * k, y + iy * k)))
-                            # 如果这个方向是人类玩家的棋子，那么可以吃子
-                            if field[y + iy * k][x + ix * k] == 1 or field[y + iy * k][x + ix * k] == 2:
-                                osh += 1
-                            # 如果这个方向是电脑玩家的棋子，那么不能移动
-                            if field[y + iy * k][x + ix * k] == 3 or field[y + iy * k][x + ix * k] == 4 or osh == 2:
-                                break
-    return my_list
+                possible_moves = check_king_piece_non_capture_moves(possible_moves, x_coordinate, y_coordinate)
+    return possible_moves
 
-# check_moves_i1函数用于检查人类玩家的所有棋子的所有可能的吃子移动
-def check_moves_i1(my_list):
-    my_list = []
+def check_regular_piece_non_capture_moves(possible_moves, piece_x, piece_y):
+    for direction_x, direction_y in (-1, 1), (1, 1):
+        if is_valid_direction(piece_x, piece_y, direction_x, direction_y):
+            # 如果这个方向是空的，那么可以移动
+            if is_empty_spot(piece_x, piece_y, direction_x, direction_y):
+                possible_moves.append(((piece_x, piece_y), (piece_x + direction_x, piece_y + direction_y)))
+            # 如果这个方向是人类玩家的棋子，那么可以吃子
+            if is_opponent_piece(piece_x, piece_y, direction_x, direction_y):
+                if is_valid_direction(piece_x, piece_y, direction_x * 2, direction_y * 2) and is_empty_spot(piece_x, piece_y, direction_x * 2, direction_y * 2):
+                    possible_moves.append(((piece_x, piece_y), (piece_x + direction_x * 2, piece_y + direction_y * 2)))
+    return possible_moves
+
+def check_king_piece_non_capture_moves(possible_moves, piece_x, piece_y):
+    for direction_x, direction_y in (-1, -1), (-1, 1), (1, -1), (1, 1):
+        opponent_encountered = 0
+        for step in range(1, 8):
+            if is_valid_direction(piece_x, piece_y, direction_x * step, direction_y * step):
+                # 如果这个方向是空的，那么可以移动
+                if is_empty_spot(piece_x, piece_y, direction_x * step, direction_y * step):
+                    possible_moves.append(((piece_x, piece_y), (piece_x + direction_x * step, piece_y + direction_y * step)))
+                # 如果这个方向是人类玩家的棋子，那么可以吃子
+                if is_opponent_piece(piece_x, piece_y, direction_x * step, direction_y * step):
+                    opponent_encountered += 1
+                # 如果这个方向是电脑玩家的棋子，那么不能移动
+                if is_own_piece(piece_x, piece_y, direction_x * step, direction_y * step) or opponent_encountered == 2:
+                    break
+    return possible_moves
+
+
+
+# # check_moves_i1函数用于检查人类玩家的所有棋子的所有可能的吃子移动
+# def check_moves_i1(my_list):
+#     my_list = []
+#     for y in range(8):
+#         for x in range(8):
+#             # 检查每个棋子的所有可能的吃子移动
+#             my_list = check_moves_i1p(my_list, x, y)
+#     return my_list
+
+# check_moves_eat2函数用于检查人类玩家的所有棋子的所有可能的吃子移动
+def check_moves_eat2(possible_moves):
+    possible_moves = []
     for y in range(8):
         for x in range(8):
-            # 检查每个棋子的所有可能的吃子移动
-            my_list = check_moves_i1p(my_list, x, y)
-    return my_list
+            possible_moves = check_moves_i1p(possible_moves, x, y)
+    return possible_moves
+
+
 
 # check_moves_i1p函数用于检查一个棋子的所有可能的吃子移动
 def check_moves_i1p(my_list, x, y):
