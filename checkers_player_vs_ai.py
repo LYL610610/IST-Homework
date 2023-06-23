@@ -44,6 +44,7 @@ desk = Canvas(main_window, width=800, height=800, bg='#FFFFFF')
 desk.pack()
 
 # 初始化一些全局变量
+possible_moves_list = ()
 game_state = 3
 player_score = 0
 ai_score = 0
@@ -65,93 +66,159 @@ def start_new_game():
              [1, 0, 1, 0, 1, 0, 1, 0]]
 
 # 绘制棋盘和棋子
-def draw(x_poz_1, y_poz_1, x_poz_2, y_poz_2): 
-    global field
-    global red_border, green_border
-    k = 100
-    x = 0
+# def draw(start_x, start_y, end_x, end_y):
+#     global field, red_border, green_border
+#     cell_size = 100
+#     desk.delete('all')
+#     red_border = desk.create_rectangle(-5, -5, -5, -5, outline="red", width=5)
+#     green_border = desk.create_rectangle(-5, -5, -5, -5, outline="green", width=5)
+#
+#     # 绘制棋盘
+#     for x in range(0, 8 * cell_size, 2 * cell_size):
+#         for y in range(cell_size, 8 * cell_size, 2 * cell_size):
+#             desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="black")
+#     for x in range(cell_size, 8 * cell_size, 2 * cell_size):
+#         for y in range(0, 8 * cell_size, 2 * cell_size):
+#             desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="black")
+#
+#     # 绘制棋子
+#     for y in range(8):
+#         for x in range(8):
+#             piece_type = field[y][x]
+#             if piece_type:
+#                 color = 'black' if piece_type in [1,2] else 'white'
+#                 desk.create_oval(x*cell_size+5, y*cell_size+5, (x+1)*cell_size-5, (y+1)*cell_size-5, fill=color, outline='#6E7B8B', width=7)
+#                 if piece_type in [2,4]:
+#                     desk.create_oval(x*cell_size+5, y*cell_size+5, (x+1)*cell_size-5, (y+1)*cell_size-5, fill=color, outline='red', width=7)
+#
+#     # 绘制移动的棋子
+#     piece_type = field[start_y][start_x]
+#     if piece_type:
+#         color = 'black' if piece_type in [1, 2] else 'white'
+#         desk.create_oval(start_x*cell_size+5, start_y*cell_size+5, (start_x+1)*cell_size-5, (start_y+1)*cell_size-5, fill=color, outline='#6E7B8B', width=7 ,tag='ani')
+
+def draw(start_x, start_y, end_x, end_y):
+    global field, red_border, green_border
+    cell_size = 100
     desk.delete('all')
     red_border = desk.create_rectangle(-5, -5, -5, -5, outline="red", width=5)
     green_border = desk.create_rectangle(-5, -5, -5, -5, outline="green", width=5)
 
-    while x < 8 * k:
-        y = 1 * k
-        while y < 8 * k:
-            desk.create_rectangle(x, y, x + k, y + k, fill="black")
-            y += 2 * k
-        x += 2 * k
-    x = 1 * k
+    # 绘制棋盘
+    for x in range(0, 8 * cell_size, 2 * cell_size):
+        for y in range(cell_size, 8 * cell_size, 2 * cell_size):
+            desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="white")  # 红色方块
+    for x in range(cell_size, 8 * cell_size, 2 * cell_size):
+        for y in range(0, 8 * cell_size, 2 * cell_size):
+            desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="white")  # 黑色方块
 
-    while x < 8 * k:
-        y = 0
-        while y < 8 * k:
-            desk.create_rectangle(x, y, x + k, y + k, fill="black")
-            y += 2 * k
-        x += 2 * k
+    # 对于剩下的白色方块，我们也需要将它们填充为黑色
+    for x in range(0, 8 * cell_size, 2 * cell_size):
+        for y in range(0, 8 * cell_size, 2 * cell_size):
+            desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="darkred")  # 黑色方块
+    for x in range(cell_size, 8 * cell_size, 2 * cell_size):
+        for y in range(cell_size, 8 * cell_size, 2 * cell_size):
+            desk.create_rectangle(x, y, x + cell_size, y + cell_size, fill="darkred")  # 黑色方块
 
+    # 绘制棋子
     for y in range(8):
         for x in range(8):
-            z = field[y][x]
-            if z:
-                if (x_poz_1, y_poz_1) != (x, y):
-                    color = 'black' if z in [1,2] else 'white'
-                    desk.create_oval(x*k+5, y*k+5, (x+1)*k-5, (y+1)*k-5, fill=color, outline='#6E7B8B', width=7)
-                    if z in [2,4]:
-                        # Set king outline color
-                        color_king = 'red'
-                        desk.create_oval(x*k+5, y*k+5, (x+1)*k-5, (y+1)*k-5, fill=color, outline=color_king, width=7)
+            piece_type = field[y][x]
+            if piece_type:
+                color = 'white' if piece_type in [1, 2] else 'black'  # 改变棋子的颜色
+                desk.create_oval(x * cell_size + 5, y * cell_size + 5, (x + 1) * cell_size - 5,
+                                 (y + 1) * cell_size - 5, fill=color, outline='grey', width=4)
+                if piece_type in [2, 4]:
+                    desk.create_oval(x * cell_size + 5, y * cell_size + 5, (x + 1) * cell_size - 5,
+                                     (y + 1) * cell_size - 5, fill=color, outline='gold', width=4)  # 改变王棋的颜色
 
-    z = field[y_poz_1][x_poz_1]
-    if z:
-        color = 'black' if z in [1, 2] else 'white'
-        desk.create_oval(x_poz_1*k+5, y_poz_1*k+5, (x_poz_1+1)*k-5, (y_poz_1+1)*k-5, fill=color, outline='#6E7B8B', width=7 ,tag='ani')
+    # 绘制移动的棋子
+    piece_type = field[start_y][start_x]
+    if piece_type:
+        color = 'white' if piece_type in [1, 2] else 'black'
+        desk.create_oval(start_x * cell_size + 5, start_y * cell_size + 5, (start_x + 1) * cell_size - 5,
+                         (start_y + 1) * cell_size - 5, fill=color, outline='grey', width=4, tag='ani')
 
-    kx = 1 if x_poz_1 < x_poz_2 else -1
-    ky = 1 if y_poz_1 < y_poz_2 else -1
-    for kk in range(abs(x_poz_1 - x_poz_2)):
-        for ii in range(33):
-            desk.move('ani', 3 * kx, 3 * ky)
+    # 绘制移动动画
+    move_x = 1 if start_x < end_x else -1
+    move_y = 1 if start_y < end_y else -1
+    for i in range(abs(start_x - end_x)):
+        for j in range(33):
+            speed = (33 - j) / 33  # 速度在移动过程中逐渐减小
+            desk.move('ani', 3 * move_x * speed, 3 * move_y * speed)
             desk.update()
             time.sleep(0.01)
 
+
 # 显示游戏结束的消息，并询问玩家是否要开始新游戏
-def message(s):
-    global is_player_move, i
-    z = 'Игра завершена'
-    if s == 1:
-        i = messagebox.askyesno(title=z, message='Вы победили!\nНажми "Да" что бы начать заново.', icon='info')
-    if s == 2:
-        i = messagebox.askyesno(title=z, message='Вы проиграли!\nНажми "Да" что бы начать заново.', icon='info')
-    if s == 3:
-        i = messagebox.askyesno(title=z, message='Ходов больше нет.\nНажми "Да" что бы начать заново.', icon='info')
-    if i:
+def show_end_message(end_reason):
+    global is_player_move, start_new_game
+    end_message = 'Game Over'
+    if end_reason == 1:
+        start_new_game = messagebox.askyesno(title=end_message, message='You won!\nClick "Yes" to start a new game.', icon='info')
+    if end_reason == 2:
+        start_new_game = messagebox.askyesno(title=end_message, message='You lost!\nClick "Yes" to start a new game.', icon='info')
+    if end_reason == 3:
+        start_new_game = messagebox.askyesno(title=end_message, message='No more moves.\nClick "Yes" to start a new game.', icon='info')
+    if start_new_game:
         start_new_game()
         draw(-1, -1, -1, -1)
         is_player_move = True
 
+
 # 玩家点击棋盘时的处理函数
-def position_1(event):
-    x, y = event.x // 100, event.y // 100
-    desk.coords(green_border, x * 100, y * 100, x * 100 + 100, y * 100 + 100)
+# def position_1(event):
+#     x, y = event.x // 100, event.y // 100
+#     desk.coords(green_border, x * 100, y * 100, x * 100 + 100, y * 100 + 100)
 
 # 玩家释放鼠标按钮时的处理函数
-def position_2(event):
-    global selected_piece_x, poz1_y, poz2_x, poz2_y
+# def position_2(event):
+#     global selected_piece_x, selected_piece_y, target_x, target_y
+#     global is_player_move
+#     x, y = event.x // 100, event.y // 100
+#     if field[y][x] == 1 or field[y][x] == 2:
+#         desk.coords(red_border, x * 100, y * 100, x * 100 + 100, y * 100 + 100)
+#         selected_piece_x, selected_piece_y = x, y
+#         # 检查是否有可以跳吃的棋子
+#         has_jump_moves = has_jump_moves_available()
+#         if has_jump_moves:
+#             print(can_piece_jump(selected_piece_x, selected_piece_y))
+#             if not can_piece_jump(selected_piece_x, selected_piece_y):
+#                 messagebox.showinfo("提示", "当前有可以跳吃的棋子，请选择可以跳吃的棋子！")
+#     else:
+#         if selected_piece_x != -1:  # клетка выбрана
+#             target_x, target_y = x, y
+#             if is_player_move:  # ход игрока?
+#                 player_turn()
+#                 if not is_player_move:
+#                     time.sleep(0.5)
+#                     computer_turn()
+#             selected_piece_x = -1
+#             desk.coords(red_border, -5, -5, -5, -5)
+
+# 处理玩家点击棋盘时的事件
+def handle_board_click(event):
+    grid_x, grid_y = event.x // 100, event.y // 100
+    desk.coords(green_border, grid_x * 100, grid_y * 100, grid_x * 100 + 100, grid_y * 100 + 100)
+
+# 处理玩家释放鼠标按钮时的事件
+def handle_mouse_release(event):
+    global selected_piece_x, selected_piece_y, target_x, target_y
     global is_player_move
-    x, y = event.x // 100, event.y // 100
-    if field[y][x] == 1 or field[y][x] == 2:
-        desk.coords(red_border, x * 100, y * 100, x * 100 + 100, y * 100 + 100)
-        selected_piece_x, poz1_y = x, y
+    grid_x, grid_y = event.x // 100, event.y // 100
+    if field[grid_y][grid_x] == 1 or field[grid_y][grid_x] == 2:
+        desk.coords(red_border, grid_x * 100, grid_y * 100, grid_x * 100 + 100, grid_y * 100 + 100)
+        selected_piece_x, selected_piece_y = grid_x, grid_y
         # 检查是否有可以跳吃的棋子
         has_jump_moves = has_jump_moves_available()
         if has_jump_moves:
-            print(can_piece_jump(selected_piece_x, poz1_y))
-            if not can_piece_jump(selected_piece_x, poz1_y):
+            print(can_piece_jump(selected_piece_x, selected_piece_y))
+            if not can_piece_jump(selected_piece_x, selected_piece_y):
                 messagebox.showinfo("提示", "当前有可以跳吃的棋子，请选择可以跳吃的棋子！")
     else:
-        if selected_piece_x != -1:  # клетка выбрана
-            poz2_x, poz2_y = x, y
-            if is_player_move:  # ход игрока?
+        if selected_piece_x != -1:  # 如果已经选择了棋子
+            target_x, target_y = grid_x, grid_y
+            if is_player_move:  # 如果是玩家的回合
                 player_turn()
                 if not is_player_move:
                     time.sleep(0.5)
@@ -159,47 +226,83 @@ def position_2(event):
             selected_piece_x = -1
             desk.coords(red_border, -5, -5, -5, -5)
 
-# 检查是否有可以跳吃的棋子
+
+# # 检查是否有可以跳吃的棋子
+# def has_jump_moves_available():
+#     if len(check_moves_i1(list_hi())) > 0:
+#         return True
+#     return False
+#
+# # 检查指定的棋子是否可以跳吃
+# def can_piece_jump(x, y):
+#     piece = field[y][x]
+#     if piece == 1 or piece == 2:
+#         jumps = check_moves_i1p([], x, y)
+#         if jumps:
+#             return True
+#     return False
+
+# Check if there are any pieces that can make a jump move
 def has_jump_moves_available():
-    if len(check_moves_i1(list_hi())) > 0:
-        return True
+    return len(check_moves_i1(get_human_possible_moves())) > 0
+
+# Check if a specific piece can make a jump move
+def can_piece_jump(piece_x, piece_y):
+    piece = field[piece_y][piece_x]
+    if piece in [1, 2]:
+        jumps = check_moves_i1p([], piece_x, piece_y)
+        return bool(jumps)
     return False
 
-# 检查指定的棋子是否可以跳吃
-def can_piece_jump(x, y):
-    piece = field[y][x]
-    if piece == 1 or piece == 2:
-        jumps = check_moves_i1p([], x, y)
-        if jumps:
-            return True
-    return False
 
-# 电脑玩家的回合
-def computer_turn():  
+# # 电脑玩家的回合
+# def computer_turn():
+#     global is_player_move
+#     global n2_list
+#     check_hk(1, (), [], alpha, beta)
+#     if n2_list:
+#         kh = len(n2_list)
+#         th = random.randint(0, kh - 1)
+#         dh = len(n2_list[th])
+#         for k in range(dh - 1):
+#             my_list = move(1, n2_list[th][k][0], n2_list[th][k][1], n2_list[th][1 + k][0], n2_list[th][1 + k][1])
+#         n2_list = []
+#         is_player_move = True
+#
+#     s_k, s_i = scan()
+#     if not s_i:
+#         show_end_message(2)
+#     elif not s_k:
+#         show_end_message(1)
+#     elif is_player_move and not (list_hi()):
+#         show_end_message(3)
+#     elif not is_player_move and not (list_hk()):
+#         show_end_message(3)
+
+def computer_turn():
     global is_player_move
-    global n2_list
-    check_hk(1, (), [], alpha, beta)
-    if n2_list:
-        kh = len(n2_list)
-        th = random.randint(0, kh - 1)
-        dh = len(n2_list[th])
-        for k in range(dh - 1):
-            my_list = move(1, n2_list[th][k][0], n2_list[th][k][1], n2_list[th][1 + k][0], n2_list[th][1 + k][1])
-        n2_list = []
+    global possible_moves_list
+    evaluate_all_moves(1, (), [], alpha, beta)
+    if possible_moves_list:
+        num_possible_moves = len(possible_moves_list)
+        chosen_move_index = random.randint(0, num_possible_moves - 1)
+        num_steps_in_chosen_move = len(possible_moves_list[chosen_move_index])
+        for step in range(num_steps_in_chosen_move - 1):
+            move_list = move(1, possible_moves_list[chosen_move_index][step][0], possible_moves_list[chosen_move_index][step][1], possible_moves_list[chosen_move_index][step + 1][0], possible_moves_list[chosen_move_index][step + 1][1])
+        possible_moves_list = []
         is_player_move = True
+    computer_score, player_score = scan_board()
+    if not player_score:
+        show_end_message(2)
+    elif not computer_score:
+        show_end_message(1)
+    elif is_player_move and not (get_human_possible_moves()):
+        show_end_message(3)
+    elif not is_player_move and not (get_computer_possible_moves()):
+        show_end_message(3)
 
-    s_k, s_i = scan()
-    if not s_i:
-        message(2)
-    elif not s_k:
-        message(1)
-    elif is_player_move and not (list_hi()):
-        message(3)
-    elif not is_player_move and not (list_hk()):
-        message(3)
-
-# list_hk函数用于获取电脑玩家的所有可能的移动
-def list_hk():
+# get_computer_possible_moves函数用于获取电脑玩家的所有可能的移动
+def get_computer_possible_moves():
     # 首先尝试获取所有可以吃掉对手棋子的移动
     my_list = check_moves_k1([])  
     # 如果没有可以吃掉对手棋子的移动，那么获取所有普通的移动
@@ -207,34 +310,34 @@ def list_hk():
         my_list = check_moves_k2p([])
     return my_list
 
-# check_hk函数用于评估电脑玩家的所有可能的移动
-def check_hk(tur, n_list, my_list, alpha, beta):  
+# evaluate_all_moves函数用于评估电脑玩家的所有可能的移动
+def evaluate_all_moves(tur, n_list, my_list, alpha, beta):
     global field
-    global n2_list
+    global possible_moves_list
     global l_rez, player_score, ai_score
     if not my_list:  
-        my_list = list_hk()  
+        my_list = get_computer_possible_moves()
 
     if my_list:
         k_pole = copy.deepcopy(field)
-        for ((selected_piece_x, poz1_y), (poz2_x, poz2_y)) in my_list:
-            t_list = move(0, selected_piece_x, poz1_y, poz2_x, poz2_y)
+        for ((selected_piece_x, selected_piece_y), (target_x, target_y)) in my_list:
+            t_list = move(0, selected_piece_x, selected_piece_y, target_x, target_y)
             if t_list:  
-                check_hk(tur, (n_list + ((selected_piece_x, poz1_y),)), t_list, alpha, beta)
+                evaluate_all_moves(tur, (n_list + ((selected_piece_x, selected_piece_y),)), t_list, alpha, beta)
             else:
                 check_hi(tur, [], alpha, beta)
                 if tur == 1:
                     t_rez = ai_score / player_score
-                    if not n2_list:  
-                        n2_list = (n_list + ((selected_piece_x, poz1_y), (poz2_x, poz2_y)),)
+                    if not possible_moves_list:
+                        possible_moves_list = (n_list + ((selected_piece_x, selected_piece_y), (target_x, target_y)),)
                         l_rez = t_rez  
                         alpha = max(alpha, t_rez)
                     else:
                         if t_rez == l_rez:
-                            n2_list = n2_list + (n_list + ((selected_piece_x, poz1_y), (poz2_x, poz2_y)),)
+                            possible_moves_list = possible_moves_list + (n_list + ((selected_piece_x, selected_piece_y), (target_x, target_y)),)
                         if t_rez > l_rez:
-                            n2_list = ()
-                            n2_list = (n_list + ((selected_piece_x, poz1_y), (poz2_x, poz2_y)),)
+                            possible_moves_list = ()
+                            possible_moves_list = (n_list + ((selected_piece_x, selected_piece_y), (target_x, target_y)),)
                             l_rez = t_rez  
                             alpha = max(alpha, t_rez)
                     ai_score = 0
@@ -244,12 +347,12 @@ def check_hk(tur, n_list, my_list, alpha, beta):
             if beta <= alpha:
                 break
     else: 
-        s_k, s_i = scan()
-        ai_score += (s_k - s_i)
+        computer_score, player_score = scan_board()
+        ai_score += (computer_score - player_score)
         player_score += 1
 
-# list_hi函数用于获取人类玩家的所有可能的移动
-def list_hi():
+# get_human_possible_moves函数用于获取人类玩家的所有可能的移动
+def get_human_possible_moves():
     # 首先尝试获取所有可以吃掉对手棋子的移动
     my_list = check_moves_i1([])  
     # 如果没有可以吃掉对手棋子的移动，那么获取所有普通的移动
@@ -262,20 +365,20 @@ def check_hi(tur, my_list, alpha, beta):
     global field, player_score, ai_score
     global game_state
     if not my_list:
-        my_list = list_hi()
+        my_list = get_human_possible_moves()
 
     if my_list:  
         k_pole = copy.deepcopy(field)
-        for ((selected_piece_x, poz1_y), (poz2_x, poz2_y)) in my_list:
-            t_list = move(0, selected_piece_x, poz1_y, poz2_x, poz2_y)
+        for ((selected_piece_x, selected_piece_y), (target_x, target_y)) in my_list:
+            t_list = move(0, selected_piece_x, selected_piece_y, target_x, target_y)
             if t_list:  
                 check_hi(tur, t_list, alpha, beta)
             else:
                 if tur < game_state:
-                    check_hk(tur + 1, (), [], alpha, beta)
+                    evaluate_all_moves(tur + 1, (), [], alpha, beta)
                 else:
-                    s_k, s_i = scan()  
-                    ai_score += (s_k - s_i)
+                    computer_score, player_score = scan_board()
+                    ai_score += (computer_score - player_score)
                     player_score += 1
                     beta = min(beta, ai_score / player_score)
 
@@ -283,43 +386,43 @@ def check_hi(tur, my_list, alpha, beta):
             if beta <= alpha:
                 break
     else:  
-        s_k, s_i = scan()  
-        ai_score += (s_k - s_i)
+        computer_score, player_score = scan_board()
+        ai_score += (computer_score - player_score)
         player_score += 1
         beta = min(beta, ai_score / player_score)
 
-# scan函数用于扫描棋盘，统计双方的棋子数量
-def scan():  
+# scan_board函数用于扫描棋盘，统计双方的棋子数量
+def scan_board():
     global field
     # 人类玩家的棋子数量
-    s_i = 0
+    player_score = 0
     # 电脑玩家的棋子数量
-    s_k = 0
+    computer_score = 0
     # 遍历棋盘
     for k in range(8):
         for ii in field[k]:
             # 根据棋子的类型，更新双方的棋子数量
             if ii == 1:
-                s_i += 1
+                player_score += 1
             if ii == 2:
-                s_i += 3
+                player_score += 3
             if ii == 3:
-                s_k += 1
+                computer_score += 1
             if ii == 4:
-                s_k += 3
-    return s_k, s_i
+                computer_score += 3
+    return computer_score, player_score
 
 # player_turn函数用于处理人类玩家的回合
 def player_turn():
-    global selected_piece_x, poz1_y, poz2_x, poz2_y
+    global selected_piece_x, selected_piece_y, target_x, target_y
     global is_player_move
     is_player_move = False  
     # 获取人类玩家的所有可能的移动
-    my_list = list_hi()
+    my_list = get_human_possible_moves()
     if my_list:
         # 如果人类玩家选择的移动在所有可能的移动中，那么执行这个移动
-        if ((selected_piece_x, poz1_y), (poz2_x, poz2_y)) in my_list:
-            t_list = move(1, selected_piece_x, poz1_y, poz2_x, poz2_y)
+        if ((selected_piece_x, selected_piece_y), (target_x, target_y)) in my_list:
+            t_list = move(1, selected_piece_x, selected_piece_y, target_x, target_y)
             if t_list:  
                 is_player_move = True  
         else:
@@ -328,41 +431,41 @@ def player_turn():
     desk.update()  
 
 # move函数用于执行一次移动
-def move(f, selected_piece_x, poz1_y, poz2_x, poz2_y):
+def move(f, selected_piece_x, selected_piece_y, target_x, target_y):
     global field
     # 如果是人类玩家的回合，那么在界面上画出这次移动
-    if f: draw(selected_piece_x, poz1_y, poz2_x, poz2_y)
+    if f: draw(selected_piece_x, selected_piece_y, target_x, target_y)
     # 如果人类玩家的棋子到达了对方的基地，那么升级这个棋子
-    if poz2_y == 0 and field[poz1_y][selected_piece_x] == 1:
-        field[poz1_y][selected_piece_x] = 2
+    if target_y == 0 and field[selected_piece_y][selected_piece_x] == 1:
+        field[selected_piece_y][selected_piece_x] = 2
     # 如果电脑玩家的棋子到达了对方的基地，那么升级这个棋子
-    if poz2_y == 7 and field[poz1_y][selected_piece_x] == 3:
-        field[poz1_y][selected_piece_x] = 4
+    if target_y == 7 and field[selected_piece_y][selected_piece_x] == 3:
+        field[selected_piece_y][selected_piece_x] = 4
     # 更新棋盘
-    field[poz2_y][poz2_x] = field[poz1_y][selected_piece_x]
-    field[poz1_y][selected_piece_x] = 0
+    field[target_y][target_x] = field[selected_piece_y][selected_piece_x]
+    field[selected_piece_y][selected_piece_x] = 0
 
     # 计算移动的方向
     kx = ky = 1
-    if selected_piece_x < poz2_x:
+    if selected_piece_x < target_x:
         kx = -1
-    if poz1_y < poz2_y:
+    if selected_piece_y < target_y:
         ky = -1
-    x_poz, y_poz = poz2_x, poz2_y
+    x_poz, y_poz = target_x, target_y
     # 如果在移动的过程中吃掉了对方的棋子，那么更新棋盘，并检查是否可以继续吃掉对方的棋子
-    while (selected_piece_x != x_poz) or (poz1_y != y_poz):
+    while (selected_piece_x != x_poz) or (selected_piece_y != y_poz):
         x_poz += kx
         y_poz += ky
         if field[y_poz][x_poz] != 0:
             field[y_poz][x_poz] = 0
             if f:
                 draw(-1, -1, -1, -1)  
-            if field[poz2_y][poz2_x] == 3 or field[poz2_y][poz2_x] == 4:
-                return check_moves_k1p([], poz2_x, poz2_y)
-            elif field[poz2_y][poz2_x] == 1 or field[poz2_y][poz2_x] == 2:
-                return check_moves_i1p([], poz2_x, poz2_y)
+            if field[target_y][target_x] == 3 or field[target_y][target_x] == 4:
+                return check_moves_k1p([], target_x, target_y)
+            elif field[target_y][target_x] == 1 or field[target_y][target_x] == 2:
+                return check_moves_i1p([], target_x, target_y)
     if f:
-        draw(selected_piece_x, poz1_y, poz2_x, poz2_y)
+        draw(selected_piece_x, selected_piece_y, target_x, target_y)
 
 # check_moves_k1函数用于检查电脑玩家的所有棋子的所有可能的吃子移动
 def check_moves_k1(my_list):  
@@ -520,9 +623,9 @@ def check_moves_i2(my_list):
 start_new_game()
 # 绘制棋盘
 draw(-1, -1, -1, -1)
-# 绑定鼠标移动事件，当鼠标移动时，调用position_1函数
-desk.bind("<Motion>", position_1)
-# 绑定鼠标点击事件，当鼠标点击时，调用position_2函数
-desk.bind("<Button-1>", position_2)
+# 绑定鼠标移动事件，当鼠标移动时，调用handle_board_click函数
+desk.bind("<Motion>", handle_board_click)
+# 绑定鼠标点击事件，当鼠标点击时，调用handle_mouse_release函数
+desk.bind("<Button-1>", handle_mouse_release)
 # 开始游戏主循环
 mainloop()
