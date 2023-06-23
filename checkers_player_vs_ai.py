@@ -422,38 +422,76 @@ def evaluate_all_moves(turn, move_sequence, possible_moves, alpha, beta):
 
 
 
-# get_human_possible_moves函数用于获取人类玩家的所有可能的移动
-def get_human_possible_moves():
-    # 首先尝试获取所有可以吃掉对手棋子的移动
-    my_list = check_moves_i1([])
-    # 如果没有可以吃掉对手棋子的移动，那么获取所有普通的移动
-    if not my_list:
-        my_list = check_moves_i2([])  # здесь проверяем оставшиеся ходы
-    return my_list
+# # get_human_possible_moves函数用于获取人类玩家的所有可能的移动
+# def get_human_possible_moves():
+#     # 首先尝试获取所有可以吃掉对手棋子的移动
+#     my_list = check_moves_i1([])
+#     # 如果没有可以吃掉对手棋子的移动，那么获取所有普通的移动
+#     if not my_list:
+#         my_list = check_moves_i2([])  # здесь проверяем оставшиеся ходы
+#     return my_list
+#
+# # check_human_moves函数用于评估人类玩家的所有可能的移动
+# def check_human_moves(tur, my_list, alpha, beta):
+#     global field, player_score, ai_score
+#     global game_state
+#     if not my_list:
+#         my_list = get_human_possible_moves()
+#
+#     if my_list:
+#         k_pole = copy.deepcopy(field)
+#         for ((selected_piece_x, selected_piece_y), (target_x, target_y)) in my_list:
+#             t_list = move(0, selected_piece_x, selected_piece_y, target_x, target_y)
+#             if t_list:
+#                 check_human_moves(tur, t_list, alpha, beta)
+#             else:
+#                 if tur < game_state:
+#                     evaluate_all_moves(tur + 1, (), [], alpha, beta)
+#                 else:
+#                     computer_score, player_score = scan_board()
+#                     ai_score += (computer_score - player_score)
+#                     player_score += 1
+#                     beta = min(beta, ai_score / player_score)
+#
+#             field = copy.deepcopy(k_pole)
+#             if beta <= alpha:
+#                 break
+#     else:
+#         computer_score, player_score = scan_board()
+#         ai_score += (computer_score - player_score)
+#         player_score += 1
+#         beta = min(beta, ai_score / player_score)
 
-# check_human_moves函数用于评估人类玩家的所有可能的移动
-def check_human_moves(tur, my_list, alpha, beta):
+# 获取人类玩家所有可能的移动
+def get_human_possible_moves():
+    # 尝试获取所有可以吃掉对手棋子的移动
+    possible_moves = check_moves_i1([])
+    # 如果没有可以吃掉对手棋子的移动，那么获取所有普通的移动
+    if not possible_moves:
+        possible_moves = check_moves_i2([])
+    return possible_moves
+
+# 评估人类玩家所有可能的移动
+def check_human_moves(turn, possible_moves, alpha, beta):
     global field, player_score, ai_score
     global game_state
-    if not my_list:
-        my_list = get_human_possible_moves()
-
-    if my_list:
-        k_pole = copy.deepcopy(field)
-        for ((selected_piece_x, selected_piece_y), (target_x, target_y)) in my_list:
-            t_list = move(0, selected_piece_x, selected_piece_y, target_x, target_y)
-            if t_list:
-                check_human_moves(tur, t_list, alpha, beta)
+    if not possible_moves:
+        possible_moves = get_human_possible_moves()
+    if possible_moves:
+        original_field = copy.deepcopy(field)
+        for ((selected_piece_x, selected_piece_y), (target_x, target_y)) in possible_moves:
+            next_moves = move(0, selected_piece_x, selected_piece_y, target_x, target_y)
+            if next_moves:
+                check_human_moves(turn, next_moves, alpha, beta)
             else:
-                if tur < game_state:
-                    evaluate_all_moves(tur + 1, (), [], alpha, beta)
+                if turn < game_state:
+                    evaluate_all_moves(turn + 1, (), [], alpha, beta)
                 else:
                     computer_score, player_score = scan_board()
                     ai_score += (computer_score - player_score)
                     player_score += 1
                     beta = min(beta, ai_score / player_score)
-
-            field = copy.deepcopy(k_pole)
+            field = copy.deepcopy(original_field)
             if beta <= alpha:
                 break
     else:
@@ -487,19 +525,19 @@ def scan_board():
 def player_turn():
     global selected_piece_x, selected_piece_y, target_x, target_y
     global is_player_move
-    is_player_move = False  
+    is_player_move = False
     # 获取人类玩家的所有可能的移动
     my_list = get_human_possible_moves()
     if my_list:
         # 如果人类玩家选择的移动在所有可能的移动中，那么执行这个移动
         if ((selected_piece_x, selected_piece_y), (target_x, target_y)) in my_list:
             t_list = move(1, selected_piece_x, selected_piece_y, target_x, target_y)
-            if t_list:  
-                is_player_move = True  
+            if t_list:
+                is_player_move = True
         else:
-            is_player_move = True  
+            is_player_move = True
     # 更新棋盘
-    desk.update()  
+    desk.update()
 
 # move函数用于执行一次移动
 def move(f, selected_piece_x, selected_piece_y, target_x, target_y):
