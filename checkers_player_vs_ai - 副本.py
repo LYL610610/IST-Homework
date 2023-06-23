@@ -134,12 +134,42 @@ def show_end_message(end_reason):
     if end_reason == 2:
         i = messagebox.askyesno(title=end_message, message='You lost!\nClick "Yes" to start a new game.', icon='info')
     if end_reason == 3:
-        m = messagebox.askyesno(title=end_message, message='No more moves.\nClick "Yes" to start a new game.', icon='info')
+        i = messagebox.askyesno(title=end_message, message='No more moves.\nClick "Yes" to start a new game.', icon='info')
     if i:
         start_new_game()
         draw(-1, -1, -1, -1)
         is_player_move = True
 
+
+# def get_possible_moves(x, y):
+#     # 初始化可能的移动位置列表
+#     possible_moves = []
+#     # 获取棋子的类型
+#     piece_type = field[y][x]
+#     # 检查四个方向的移动
+#     for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+#         new_x, new_y = x + dx, y + dy
+#         # 如果是王棋，可以沿对角线任意移动
+#         if piece_type in [3, 4]:
+#             while 0 <= new_x < 8 and 0 <= new_y < 8:
+#                 # 检查新的位置是否为空
+#                 if field[new_y][new_x] == 0:
+#                     possible_moves.append((new_x, new_y))
+#                 else:
+#                     break
+#                 new_x += dx
+#                 new_y += dy
+#         # 如果是普通棋子，只能向前移动
+#         elif piece_type == 1 and dy == -1 or piece_type == 2 and dy == 1:
+#             # 检查新的位置是否在棋盘内
+#             if 0 <= new_x < 8 and 0 <= new_y < 8:
+#                 # 检查新的位置是否为空
+#                 if field[new_y][new_x] == 0:
+#                     possible_moves.append((new_x, new_y))
+#                 # 检查是否可以跳吃
+#                 elif 0 <= new_x + dx < 8 and 0 <= new_y + dy < 8 and field[new_y + dy][new_x + dx] == 0 and field[new_y][new_x] != piece_type:
+#                     possible_moves.append((new_x + dx, new_y + dy))
+#     return possible_moves
 
 def get_possible_moves(x, y):
     # 初始化可能的移动位置列表
@@ -148,18 +178,41 @@ def get_possible_moves(x, y):
     piece_type = field[y][x]
     # 检查四个方向的移动
     for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+        new_x, new_y = x + dx, y + dy
+        # 如果是王棋，可以沿对角线任意移动
+        if piece_type in [3, 4]:
+            while 0 <= new_x < 8 and 0 <= new_y < 8:
+                # 检查新的位置是否为空
+                if field[new_y][new_x] == 0:
+                    possible_moves.append((new_x, new_y))
+                # 检查是否可以跳吃
+                elif 0 <= new_x + dx < 8 and 0 <= new_y + dy < 8 and field[new_y + dy][new_x + dx] == 0 and field[new_y][new_x] != piece_type:
+                    jump_x, jump_y = new_x + dx, new_y + dy
+                    while 0 <= jump_x < 8 and 0 <= jump_y < 8:
+                        if field[jump_y][jump_x] == 0:
+                            possible_moves.append((jump_x, jump_y))
+                        else:
+                            break
+                        jump_x += dx
+                        jump_y += dy
+                    break
+                else:
+                    break
+                new_x += dx
+                new_y += dy
         # 如果是普通棋子，只能向前移动
-        if piece_type == 1 and dy == -1 or piece_type == 2 and dy == 1 or piece_type in [3, 4]:
-            new_x, new_y = x + dx, y + dy
+        elif piece_type == 1 and dy == -1 or piece_type == 2 and dy == 1:
             # 检查新的位置是否在棋盘内
             if 0 <= new_x < 8 and 0 <= new_y < 8:
                 # 检查新的位置是否为空
                 if field[new_y][new_x] == 0:
                     possible_moves.append((new_x, new_y))
                 # 检查是否可以跳吃
-                elif 0 <= new_x + dx < 8 and 0 <= new_y + dy < 8 and field[new_y + dy][new_x + dx] == 0:
+                elif 0 <= new_x + dx < 8 and 0 <= new_y + dy < 8 and field[new_y + dy][new_x + dx] == 0 and field[new_y][new_x] != piece_type:
                     possible_moves.append((new_x + dx, new_y + dy))
     return possible_moves
+
+
 
 
 
@@ -170,6 +223,34 @@ def handle_board_click(event):
     desk.coords(blue_border, grid_x * 100, grid_y * 100, grid_x * 100 + 100, grid_y * 100 + 100)
 
 # 处理玩家释放鼠标按钮时的事件
+# def handle_mouse_release(event):
+#     global selected_piece_x, selected_piece_y, target_x, target_y
+#     global is_player_move
+#     grid_x, grid_y = event.x // 100, event.y // 100
+#     if field[grid_y][grid_x] == 1 or field[grid_y][grid_x] == 2:
+#         desk.coords(red_border, grid_x * 100, grid_y * 100, grid_x * 100 + 100, grid_y * 100 + 100)
+#         selected_piece_x, selected_piece_y = grid_x, grid_y
+#         # 检查是否有可以跳吃的棋子
+#         has_jump_moves = has_jump_moves_available()
+#         possible_moves = get_possible_moves(selected_piece_x, selected_piece_y)
+#         for move in possible_moves:
+#             x, y = move
+#             desk.create_rectangle(x * 100, y * 100, (x + 1) * 100, (y + 1) * 100, fill='yellow')
+#         if has_jump_moves:
+#             print(can_piece_jump(selected_piece_x, selected_piece_y))
+#             if not can_piece_jump(selected_piece_x, selected_piece_y):
+#                 messagebox.showinfo("提示", "当前有可以跳吃的棋子，请选择可以跳吃的棋子！")
+#     else:
+#         if selected_piece_x != -1:  # 如果已经选择了棋子
+#             target_x, target_y = grid_x, grid_y
+#             if is_player_move:  # 如果是玩家的回合
+#                 player_turn()
+#                 if not is_player_move:
+#                     time.sleep(0.5)
+#                     computer_turn()
+#             selected_piece_x = -1
+#             desk.coords(red_border, -5, -5, -5, -5)
+
 def handle_mouse_release(event):
     global selected_piece_x, selected_piece_y, target_x, target_y
     global is_player_move
@@ -179,10 +260,12 @@ def handle_mouse_release(event):
         selected_piece_x, selected_piece_y = grid_x, grid_y
         # 检查是否有可以跳吃的棋子
         has_jump_moves = has_jump_moves_available()
+        # Reset the highlights
+        desk.delete('highlight')
         possible_moves = get_possible_moves(selected_piece_x, selected_piece_y)
         for move in possible_moves:
             x, y = move
-            desk.create_rectangle(x * 100, y * 100, (x + 1) * 100, (y + 1) * 100, fill='yellow')
+            desk.create_rectangle(x * 100, y * 100, (x + 1) * 100, (y + 1) * 100, fill='yellow', tags='highlight')
         if has_jump_moves:
             print(can_piece_jump(selected_piece_x, selected_piece_y))
             if not can_piece_jump(selected_piece_x, selected_piece_y):
@@ -197,6 +280,9 @@ def handle_mouse_release(event):
                     computer_turn()
             selected_piece_x = -1
             desk.coords(red_border, -5, -5, -5, -5)
+            # Reset the highlights
+            desk.delete('highlight')
+
 
 # Check if there are any pieces that can make a jump move
 def has_jump_moves_available():
@@ -423,12 +509,38 @@ def calculate_direction(selected_piece_x, selected_piece_y, target_x, target_y):
     direction_y = -1 if selected_piece_y < target_y else 1
     return direction_x, direction_y
 
+# def check_and_execute_capture(is_human_turn, selected_piece_x, selected_piece_y, target_x, target_y, direction_x, direction_y):
+#     x_position, y_position = target_x, target_y
+#     while (selected_piece_x != x_position) or (selected_piece_y != y_position):
+#         x_position += direction_x
+#         y_position += direction_y
+#         if field[y_position][x_position] != 0:
+#
+#             # 弑君
+#             # if 当前是玩家普通
+#             #   if 当前目标是AI王
+#             #       跳跃点的值变为王
+#             field[y_position][x_position] = 0
+#             if is_human_turn:
+#                 draw(-1, -1, -1, -1)
+#             if field[target_y][target_x] in [3, 4]:
+#                 return check_moves_eat([], target_x, target_y)
+#             elif field[target_y][target_x] in [1, 2]:
+#                 return check_moves_possible([], target_x, target_y)
+#     if is_human_turn:
+#         draw(selected_piece_x, selected_piece_y, target_x, target_y)
+
 def check_and_execute_capture(is_human_turn, selected_piece_x, selected_piece_y, target_x, target_y, direction_x, direction_y):
     x_position, y_position = target_x, target_y
     while (selected_piece_x != x_position) or (selected_piece_y != y_position):
         x_position += direction_x
         y_position += direction_y
         if field[y_position][x_position] != 0:
+            # 如果吃掉的是敌方的王棋，升级为王棋
+            if is_human_turn and field[y_position][x_position] == 4:
+                field[target_y][target_x] = 2
+            elif not is_human_turn and field[y_position][x_position] == 2:
+                field[target_y][target_x] = 4
             field[y_position][x_position] = 0
             if is_human_turn:
                 draw(-1, -1, -1, -1)
@@ -438,6 +550,7 @@ def check_and_execute_capture(is_human_turn, selected_piece_x, selected_piece_y,
                 return check_moves_possible([], target_x, target_y)
     if is_human_turn:
         draw(selected_piece_x, selected_piece_y, target_x, target_y)
+
 
 
 # check_moves_ai函数用于检查电脑玩家的所有棋子的所有可能的吃子移动
