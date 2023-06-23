@@ -112,7 +112,7 @@ def draw(start_x, start_y, end_x, end_y):
     if piece_type:
         color = 'white' if piece_type in [1, 2] else 'black'
         desk.create_oval(start_x * cell_size + 5, start_y * cell_size + 5, (start_x + 1) * cell_size - 5,
-                         (start_y + 1) * cell_size - 5, fill=color, outline='grey', width=4, tag='ani')
+                         (start_y + 1) * cell_size - 5, fill=color, outline='gold', width=4, tag='ani')
 
     # 绘制移动动画
     move_x = 1 if start_x < end_x else -1
@@ -140,36 +140,6 @@ def show_end_message(end_reason):
         draw(-1, -1, -1, -1)
         is_player_move = True
 
-
-# def get_possible_moves(x, y):
-#     # 初始化可能的移动位置列表
-#     possible_moves = []
-#     # 获取棋子的类型
-#     piece_type = field[y][x]
-#     # 检查四个方向的移动
-#     for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
-#         new_x, new_y = x + dx, y + dy
-#         # 如果是王棋，可以沿对角线任意移动
-#         if piece_type in [3, 4]:
-#             while 0 <= new_x < 8 and 0 <= new_y < 8:
-#                 # 检查新的位置是否为空
-#                 if field[new_y][new_x] == 0:
-#                     possible_moves.append((new_x, new_y))
-#                 else:
-#                     break
-#                 new_x += dx
-#                 new_y += dy
-#         # 如果是普通棋子，只能向前移动
-#         elif piece_type == 1 and dy == -1 or piece_type == 2 and dy == 1:
-#             # 检查新的位置是否在棋盘内
-#             if 0 <= new_x < 8 and 0 <= new_y < 8:
-#                 # 检查新的位置是否为空
-#                 if field[new_y][new_x] == 0:
-#                     possible_moves.append((new_x, new_y))
-#                 # 检查是否可以跳吃
-#                 elif 0 <= new_x + dx < 8 and 0 <= new_y + dy < 8 and field[new_y + dy][new_x + dx] == 0 and field[new_y][new_x] != piece_type:
-#                     possible_moves.append((new_x + dx, new_y + dy))
-#     return possible_moves
 
 def get_possible_moves(x, y):
     # 初始化可能的移动位置列表
@@ -211,6 +181,7 @@ def get_possible_moves(x, y):
                 elif 0 <= new_x + dx < 8 and 0 <= new_y + dy < 8 and field[new_y + dy][new_x + dx] == 0 and field[new_y][new_x] != piece_type:
                     possible_moves.append((new_x + dx, new_y + dy))
     return possible_moves
+
 
 
 
