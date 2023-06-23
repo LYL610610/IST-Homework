@@ -252,7 +252,7 @@ def has_jump_moves_available():
 def can_piece_jump(piece_x, piece_y):
     piece = field[piece_y][piece_x]
     if piece in [1, 2]:
-        jumps = check_moves_i1p([], piece_x, piece_y)
+        jumps = check_moves_possible([], piece_x, piece_y)
         return bool(jumps)
     return False
 
@@ -470,7 +470,7 @@ def get_human_possible_moves():
     possible_moves = check_moves_eat2([])
     # 如果没有可以吃掉对手棋子的移动，那么获取所有普通的移动
     if not possible_moves:
-        possible_moves = check_moves_i2([])
+        possible_moves = check_moves_ordi([])
     return possible_moves
 
 # 评估人类玩家所有可能的移动
@@ -622,7 +622,7 @@ def check_and_execute_capture(is_human_turn, selected_piece_x, selected_piece_y,
             if field[target_y][target_x] in [3, 4]:
                 return check_moves_eat([], target_x, target_y)
             elif field[target_y][target_x] in [1, 2]:
-                return check_moves_i1p([], target_x, target_y)
+                return check_moves_possible([], target_x, target_y)
     if is_human_turn:
         draw(selected_piece_x, selected_piece_y, target_x, target_y)
 
@@ -822,77 +822,126 @@ def check_moves_eat2(possible_moves):
     possible_moves = []
     for y in range(8):
         for x in range(8):
-            possible_moves = check_moves_i1p(possible_moves, x, y)
+            possible_moves = check_moves_possible(possible_moves, x, y)
     return possible_moves
 
 
 
-# check_moves_i1p函数用于检查一个棋子的所有可能的吃子移动
-def check_moves_i1p(my_list, x, y):
-    # 如果这个棋子是人类玩家的普通棋子
-    if field[y][x] == 1:
-        # 检查所有可能的吃子方向
+# # check_moves_i1p函数用于检查一个棋子的所有可能的吃子移动
+# def check_moves_i1p(my_list, x, y):
+#     # 如果这个棋子是人类玩家的普通棋子
+#     if field[y][x] == 1:
+#         # 检查所有可能的吃子方向
+#         for ix, iy in (-1, -1), (-1, 1), (1, -1), (1, 1):
+#             if 0 <= y + iy + iy <= 7 and 0 <= x + ix + ix <= 7:
+#                 # 如果吃子的方向是合法的，并且可以吃掉电脑玩家的棋子
+#                 if field[y + iy][x + ix] == 3 or field[y + iy][x + ix] == 4:
+#                     if field[y + iy + iy][x + ix + ix] == 0:
+#                         # 添加这个吃子移动到列表中
+#                         my_list.append(((x, y), (x + ix + ix, y + iy + iy)))
+#     # 检查所有可能的吃子方向
+#     if field[y][x] == 2:  # пешка с короной
+#         for ix, iy in (-1, -1), (-1, 1), (1, -1), (1, 1):
+#             osh = 0  # определение правильности хода
+#             for k in range(1, 8):
+#                 if 0 <= y + iy * k <= 7 and 0 <= x + ix * k <= 7:
+#                     if osh == 1:
+#                         # 添加这个吃子移动到列表中
+#                         my_list.append(((x, y), (x + ix * k, y + iy * k)))
+#                     # 如果这个方向是电脑玩家的棋子，那么可以吃子
+#                     if field[y + iy * k][x + ix * k] == 3 or field[y + iy * k][x + ix * k] == 4:
+#                         osh += 1
+#                     # 如果这个方向是人类玩家的棋子，那么不能移动
+#                     if field[y + iy * k][x + ix * k] == 1 or field[y + iy * k][x + ix * k] == 2 or osh == 2:
+#                         if osh > 0:
+#                             # 如果不能吃子，那么删除这个移动
+#                             my_list.pop()
+#                         break
+#     return my_list
+
+def check_moves_possible(move_list, current_x, current_y):
+    if field[current_y][current_x] == 1:
         for ix, iy in (-1, -1), (-1, 1), (1, -1), (1, 1):
-            if 0 <= y + iy + iy <= 7 and 0 <= x + ix + ix <= 7:
-                # 如果吃子的方向是合法的，并且可以吃掉电脑玩家的棋子
-                if field[y + iy][x + ix] == 3 or field[y + iy][x + ix] == 4:
-                    if field[y + iy + iy][x + ix + ix] == 0:
-                        # 添加这个吃子移动到列表中
-                        my_list.append(((x, y), (x + ix + ix, y + iy + iy)))
-    # 检查所有可能的吃子方向
-    if field[y][x] == 2:  # пешка с короной
+            if 0 <= current_y + iy + iy <= 7 and 0 <= current_x + ix + ix <= 7:
+                if field[current_y + iy][current_x + ix] == 3 or field[current_y + iy][current_x + ix] == 4:
+                    if field[current_y + iy + iy][current_x + ix + ix] == 0:
+                        move_list.append(((current_x, current_y), (current_x + ix + ix, current_y + iy + iy)))
+    if field[current_y][current_x] == 2:
         for ix, iy in (-1, -1), (-1, 1), (1, -1), (1, 1):
-            osh = 0  # определение правильности хода
+            valid_move = 0
             for k in range(1, 8):
-                if 0 <= y + iy * k <= 7 and 0 <= x + ix * k <= 7:
-                    if osh == 1:
-                        # 添加这个吃子移动到列表中
-                        my_list.append(((x, y), (x + ix * k, y + iy * k)))
-                    # 如果这个方向是电脑玩家的棋子，那么可以吃子
-                    if field[y + iy * k][x + ix * k] == 3 or field[y + iy * k][x + ix * k] == 4:
-                        osh += 1
-                    # 如果这个方向是人类玩家的棋子，那么不能移动
-                    if field[y + iy * k][x + ix * k] == 1 or field[y + iy * k][x + ix * k] == 2 or osh == 2:
-                        if osh > 0:
-                            # 如果不能吃子，那么删除这个移动
-                            my_list.pop()
+                if 0 <= current_y + iy * k <= 7 and 0 <= current_x + ix * k <= 7:
+                    if valid_move == 1:
+                        move_list.append(((current_x, current_y), (current_x + ix * k, current_y + iy * k)))
+                    if field[current_y + iy * k][current_x + ix * k] == 3 or field[current_y + iy * k][current_x + ix * k] == 4:
+                        valid_move += 1
+                    if field[current_y + iy * k][current_x + ix * k] == 1 or field[current_y + iy * k][current_x + ix * k] == 2 or valid_move == 2:
+                        if valid_move > 0:
+                            move_list.pop()
                         break
-    return my_list
+    return move_list
+
 
 # check_moves_i2函数用于检查人类玩家的所有棋子的所有可能的非吃子移动
-def check_moves_i2(my_list):
-    for y in range(8):  # сканируем всё поле
-        for x in range(8):
-            # 如果这个棋子是人类玩家的普通棋子
-            if field[y][x] == 1:
-                # 检查所有可能的非吃子方向
+# def check_moves_i2(my_list):
+#     for y in range(8):  # сканируем всё поле
+#         for x in range(8):
+#             # 如果这个棋子是人类玩家的普通棋子
+#             if field[y][x] == 1:
+#                 # 检查所有可能的非吃子方向
+#                 for ix, iy in (-1, -1), (1, -1):
+#                     if 0 <= y + iy <= 7 and 0 <= x + ix <= 7:
+#                         # 如果这个方向是空的，那么可以移动
+#                         if field[y + iy][x + ix] == 0:
+#                             my_list.append(((x, y), (x + ix, y + iy)))
+#                         # 如果这个方向是电脑玩家的棋子，那么可以吃子
+#                         if field[y + iy][x + ix] == 3 or field[y + iy][x + ix] == 4:
+#                             if 0 <= y + iy * 2 <= 7 and 0 <= x + ix * 2 <= 7:
+#                                 if field[y + iy * 2][x + ix * 2] == 0:
+#                                     my_list.append(((x, y), (
+#                                         x + ix * 2, y + iy * 2)))
+#             if field[y][x] == 2:
+#                 # 检查所有可能的非吃子方向
+#                 for ix, iy in (-1, -1), (-1, 1), (1, -1), (1, 1):
+#                     osh = 0
+#                     for k in range(1, 8):
+#                         if 0 <= y + iy * k <= 7 and 0 <= x + ix * k <= 7:
+#                             # 如果这个方向是空的，那么可以移动
+#                             if field[y + iy * k][x + ix * k] == 0:
+#                                 my_list.append(((x, y), (x + ix * k, y + iy * k)))
+#                             # 如果这个方向是电脑玩家的棋子，那么可以吃子
+#                             if field[y + iy * k][x + ix * k] == 3 or field[y + iy * k][x + ix * k] == 4:
+#                                 osh += 1
+#                             # 如果这个方向是人类玩家的棋子，那么不能移动
+#                             if field[y + iy * k][x + ix * k] == 1 or field[y + iy * k][x + ix * k] == 2 or osh == 2:
+#                                 break
+#     return my_list
+
+def check_moves_ordi(move_list):
+    for current_y in range(8):
+        for current_x in range(8):
+            if field[current_y][current_x] == 1:
                 for ix, iy in (-1, -1), (1, -1):
-                    if 0 <= y + iy <= 7 and 0 <= x + ix <= 7:
-                        # 如果这个方向是空的，那么可以移动
-                        if field[y + iy][x + ix] == 0:
-                            my_list.append(((x, y), (x + ix, y + iy)))
-                        # 如果这个方向是电脑玩家的棋子，那么可以吃子
-                        if field[y + iy][x + ix] == 3 or field[y + iy][x + ix] == 4:
-                            if 0 <= y + iy * 2 <= 7 and 0 <= x + ix * 2 <= 7:
-                                if field[y + iy * 2][x + ix * 2] == 0:
-                                    my_list.append(((x, y), (
-                                        x + ix * 2, y + iy * 2)))
-            if field[y][x] == 2:
-                # 检查所有可能的非吃子方向
+                    if 0 <= current_y + iy <= 7 and 0 <= current_x + ix <= 7:
+                        if field[current_y + iy][current_x + ix] == 0:
+                            move_list.append(((current_x, current_y), (current_x + ix, current_y + iy)))
+                        if field[current_y + iy][current_x + ix] == 3 or field[current_y + iy][current_x + ix] == 4:
+                            if 0 <= current_y + iy * 2 <= 7 and 0 <= current_x + ix * 2 <= 7:
+                                if field[current_y + iy * 2][current_x + ix * 2] == 0:
+                                    move_list.append(((current_x, current_y), (current_x + ix * 2, current_y + iy * 2)))
+            if field[current_y][current_x] == 2:
                 for ix, iy in (-1, -1), (-1, 1), (1, -1), (1, 1):
-                    osh = 0
+                    valid_move = 0
                     for k in range(1, 8):
-                        if 0 <= y + iy * k <= 7 and 0 <= x + ix * k <= 7:
-                            # 如果这个方向是空的，那么可以移动
-                            if field[y + iy * k][x + ix * k] == 0:
-                                my_list.append(((x, y), (x + ix * k, y + iy * k)))
-                            # 如果这个方向是电脑玩家的棋子，那么可以吃子
-                            if field[y + iy * k][x + ix * k] == 3 or field[y + iy * k][x + ix * k] == 4:
-                                osh += 1
-                            # 如果这个方向是人类玩家的棋子，那么不能移动
-                            if field[y + iy * k][x + ix * k] == 1 or field[y + iy * k][x + ix * k] == 2 or osh == 2:
+                        if 0 <= current_y + iy * k <= 7 and 0 <= current_x + ix * k <= 7:
+                            if field[current_y + iy * k][current_x + ix * k] == 0:
+                                move_list.append(((current_x, current_y), (current_x + ix * k, current_y + iy * k)))
+                            if field[current_y + iy * k][current_x + ix * k] == 3 or field[current_y + iy * k][current_x + ix * k] == 4:
+                                valid_move += 1
+                            if field[current_y + iy * k][current_x + ix * k] == 1 or field[current_y + iy * k][current_x + ix * k] == 2 or valid_move == 2:
                                 break
-    return my_list
+    return move_list
+
 
 # 加载跳棋游戏的图片资源
 # load_checkers_images()
