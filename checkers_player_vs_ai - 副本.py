@@ -401,6 +401,7 @@ def move(is_human_turn, selected_piece_x, selected_piece_y, target_x, target_y):
     update_board(selected_piece_x, selected_piece_y, target_x, target_y)
     # 计算移动的方向
     direction_x, direction_y = calculate_direction(selected_piece_x, selected_piece_y, target_x, target_y)
+
     # 如果在移动的过程中吃掉了对方的棋子，那么更新棋盘，并检查是否可以继续吃掉对方的棋子
     return check_and_execute_capture(is_human_turn, selected_piece_x, selected_piece_y, target_x, target_y, direction_x, direction_y)
 
