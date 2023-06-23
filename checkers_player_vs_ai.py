@@ -406,19 +406,19 @@ def evaluate_all_moves(turn, move_sequence, possible_moves, alpha, beta):
                     ai_score = 0
                     player_score = 0
 
-                    # 恢复原始的棋盘状态
-                    field = copy.deepcopy(original_field)
+            # 恢复原始的棋盘状态
+            field = copy.deepcopy(original_field)
 
-                    # 如果beta小于或等于alpha，那么停止搜索
-                    if beta <= alpha:
-                        break
-                else:
-                    # 计算电脑和玩家的得分
-                    computer_score, player_score = scan_board()
-                    # 更新电脑的得分
-                    ai_score += (computer_score - player_score)
-                    # 更新玩家的得分
-                    player_score += 1
+            # 如果beta小于或等于alpha，那么停止搜索
+            if beta <= alpha:
+                break
+    else:
+        # 计算电脑和玩家的得分
+        computer_score, player_score = scan_board()
+        # 更新电脑的得分
+        ai_score += (computer_score - player_score)
+        # 更新玩家的得分
+        player_score += 1
 
 
 
