@@ -20,7 +20,7 @@ def select_difficulty_normal():
     beta = float('-inf')
     return alpha,beta
 
-# 定义选择游戏难度的回调函数-普通
+# 定义选择游戏难度的回调函数-困难
 def select_difficulty_hard():
     global alpha, beta
     alpha = float('-inf')
@@ -42,12 +42,12 @@ menu_bar.add_cascade(label="Difficulty", menu=difficulty_menu)
 
 # 将菜单栏添加到主窗口
 main_window.config(menu=menu_bar)
-desk = Canvas(main_window, width=800, height=800, bg='#FFFFFF')
+desk = Canvas(main_window, width=800, height=800, bg='white')
 desk.pack()
 
 # 初始化一些全局变量
 possible_moves_list = ()
-game_state = 3
+game_state = 2
 player_score = 0
 ai_score = 0
 selected_piece_x = -1
@@ -112,7 +112,7 @@ def draw(start_x, start_y, end_x, end_y):
     if piece_type:
         color = 'white' if piece_type in [1, 2] else 'black'
         desk.create_oval(start_x * cell_size + 5, start_y * cell_size + 5, (start_x + 1) * cell_size - 5,
-                         (start_y + 1) * cell_size - 5, fill=color, outline='gold', width=4, tag='ani')
+                         (start_y + 1) * cell_size - 5, fill=color, outline='grey', width=4, tag='ani')
 
     # 绘制移动动画
     move_x = 1 if start_x < end_x else -1
@@ -185,42 +185,11 @@ def get_possible_moves(x, y):
 
 
 
-
-
-
 # 处理玩家点击棋盘时的事件
 def handle_board_click(event):
     grid_x, grid_y = event.x // 100, event.y // 100
     desk.coords(blue_border, grid_x * 100, grid_y * 100, grid_x * 100 + 100, grid_y * 100 + 100)
 
-# 处理玩家释放鼠标按钮时的事件
-# def handle_mouse_release(event):
-#     global selected_piece_x, selected_piece_y, target_x, target_y
-#     global is_player_move
-#     grid_x, grid_y = event.x // 100, event.y // 100
-#     if field[grid_y][grid_x] == 1 or field[grid_y][grid_x] == 2:
-#         desk.coords(red_border, grid_x * 100, grid_y * 100, grid_x * 100 + 100, grid_y * 100 + 100)
-#         selected_piece_x, selected_piece_y = grid_x, grid_y
-#         # 检查是否有可以跳吃的棋子
-#         has_jump_moves = has_jump_moves_available()
-#         possible_moves = get_possible_moves(selected_piece_x, selected_piece_y)
-#         for move in possible_moves:
-#             x, y = move
-#             desk.create_rectangle(x * 100, y * 100, (x + 1) * 100, (y + 1) * 100, fill='yellow')
-#         if has_jump_moves:
-#             print(can_piece_jump(selected_piece_x, selected_piece_y))
-#             if not can_piece_jump(selected_piece_x, selected_piece_y):
-#                 messagebox.showinfo("提示", "当前有可以跳吃的棋子，请选择可以跳吃的棋子！")
-#     else:
-#         if selected_piece_x != -1:  # 如果已经选择了棋子
-#             target_x, target_y = grid_x, grid_y
-#             if is_player_move:  # 如果是玩家的回合
-#                 player_turn()
-#                 if not is_player_move:
-#                     time.sleep(0.5)
-#                     computer_turn()
-#             selected_piece_x = -1
-#             desk.coords(red_border, -5, -5, -5, -5)
 
 def handle_mouse_release(event):
     global selected_piece_x, selected_piece_y, target_x, target_y
@@ -446,14 +415,14 @@ def player_turn():
     # 更新棋盘
     desk.update()
 
+
+
 # move函数用于执行一次移动
 def move(is_human_turn, selected_piece_x, selected_piece_y, target_x, target_y):
     global field
     # 如果是人类玩家的回合，那么在界面上画出这次移动
     if is_human_turn:
         draw_move(selected_piece_x, selected_piece_y, target_x, target_y)
-    # 检查并升级棋子
-    upgrade_piece(selected_piece_x, selected_piece_y, target_x, target_y)
     # 更新棋盘
     update_board(selected_piece_x, selected_piece_y, target_x, target_y)
     # 计算移动的方向
@@ -465,12 +434,6 @@ def move(is_human_turn, selected_piece_x, selected_piece_y, target_x, target_y):
 def draw_move(selected_piece_x, selected_piece_y, target_x, target_y):
     draw(selected_piece_x, selected_piece_y, target_x, target_y)
 
-def upgrade_piece(selected_piece_x, selected_piece_y, target_x, target_y):
-    if target_y == 0 and field[selected_piece_y][selected_piece_x] == 1:
-        field[selected_piece_y][selected_piece_x] = 2
-    if target_y == 7 and field[selected_piece_y][selected_piece_x] == 3:
-        field[selected_piece_y][selected_piece_x] = 4
-
 def update_board(selected_piece_x, selected_piece_y, target_x, target_y):
     field[target_y][target_x] = field[selected_piece_y][selected_piece_x]
     field[selected_piece_y][selected_piece_x] = 0
@@ -480,38 +443,17 @@ def calculate_direction(selected_piece_x, selected_piece_y, target_x, target_y):
     direction_y = -1 if selected_piece_y < target_y else 1
     return direction_x, direction_y
 
-# def check_and_execute_capture(is_human_turn, selected_piece_x, selected_piece_y, target_x, target_y, direction_x, direction_y):
-#     x_position, y_position = target_x, target_y
-#     while (selected_piece_x != x_position) or (selected_piece_y != y_position):
-#         x_position += direction_x
-#         y_position += direction_y
-#         if field[y_position][x_position] != 0:
-#
-#             # 弑君
-#             # if 当前是玩家普通
-#             #   if 当前目标是AI王
-#             #       跳跃点的值变为王
-#             field[y_position][x_position] = 0
-#             if is_human_turn:
-#                 draw(-1, -1, -1, -1)
-#             if field[target_y][target_x] in [3, 4]:
-#                 return check_moves_eat([], target_x, target_y)
-#             elif field[target_y][target_x] in [1, 2]:
-#                 return check_moves_possible([], target_x, target_y)
-#     if is_human_turn:
-#         draw(selected_piece_x, selected_piece_y, target_x, target_y)
-
 def check_and_execute_capture(is_human_turn, selected_piece_x, selected_piece_y, target_x, target_y, direction_x, direction_y):
     x_position, y_position = target_x, target_y
     while (selected_piece_x != x_position) or (selected_piece_y != y_position):
         x_position += direction_x
         y_position += direction_y
         if field[y_position][x_position] != 0:
-            # 如果吃掉的是敌方的王棋，升级为王棋
             if is_human_turn and field[y_position][x_position] == 4:
                 field[target_y][target_x] = 2
             elif not is_human_turn and field[y_position][x_position] == 2:
                 field[target_y][target_x] = 4
+            upgrade_piece(target_x, target_y)
             field[y_position][x_position] = 0
             if is_human_turn:
                 draw(-1, -1, -1, -1)
@@ -521,7 +463,14 @@ def check_and_execute_capture(is_human_turn, selected_piece_x, selected_piece_y,
                 return check_moves_possible([], target_x, target_y)
     if is_human_turn:
         draw(selected_piece_x, selected_piece_y, target_x, target_y)
+    # 升级棋子
+    upgrade_piece(target_x, target_y)
 
+def upgrade_piece(target_x, target_y):
+    if target_y == 0 and field[target_y][target_x] == 1:
+        field[target_y][target_x] = 2
+    if target_y == 7 and field[target_y][target_x] == 3:
+        field[target_y][target_x] = 4
 
 
 # check_moves_ai函数用于检查电脑玩家的所有棋子的所有可能的吃子移动
