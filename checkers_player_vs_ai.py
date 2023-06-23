@@ -310,69 +310,140 @@ def get_computer_possible_moves():
         my_list = check_moves_k2p([])
     return my_list
 
-# evaluate_all_moves函数用于评估电脑玩家的所有可能的移动
-def evaluate_all_moves(tur, n_list, my_list, alpha, beta):
+# # evaluate_all_moves函数用于评估电脑玩家的所有可能的移动
+# def evaluate_all_moves(tur, n_list, my_list, alpha, beta):
+#     global field
+#     global possible_moves_list
+#     global l_rez, player_score, ai_score
+#     if not my_list:
+#         my_list = get_computer_possible_moves()
+#
+#     if my_list:
+#         k_pole = copy.deepcopy(field)
+#         for ((selected_piece_x, selected_piece_y), (target_x, target_y)) in my_list:
+#             t_list = move(0, selected_piece_x, selected_piece_y, target_x, target_y)
+#             if t_list:
+#                 evaluate_all_moves(tur, (n_list + ((selected_piece_x, selected_piece_y),)), t_list, alpha, beta)
+#             else:
+#                 check_hi(tur, [], alpha, beta)
+#                 if tur == 1:
+#                     t_rez = ai_score / player_score
+#                     if not possible_moves_list:
+#                         possible_moves_list = (n_list + ((selected_piece_x, selected_piece_y), (target_x, target_y)),)
+#                         l_rez = t_rez
+#                         alpha = max(alpha, t_rez)
+#                     else:
+#                         if t_rez == l_rez:
+#                             possible_moves_list = possible_moves_list + (n_list + ((selected_piece_x, selected_piece_y), (target_x, target_y)),)
+#                         if t_rez > l_rez:
+#                             possible_moves_list = ()
+#                             possible_moves_list = (n_list + ((selected_piece_x, selected_piece_y), (target_x, target_y)),)
+#                             l_rez = t_rez
+#                             alpha = max(alpha, t_rez)
+#                     ai_score = 0
+#                     player_score = 0
+#
+#             field = copy.deepcopy(k_pole)
+#             if beta <= alpha:
+#                 break
+#     else:
+#         computer_score, player_score = scan_board()
+#         ai_score += (computer_score - player_score)
+#         player_score += 1
+
+def evaluate_all_moves(turn, move_sequence, possible_moves, alpha, beta):
     global field
     global possible_moves_list
-    global l_rez, player_score, ai_score
-    if not my_list:  
-        my_list = get_computer_possible_moves()
+    global best_score, player_score, ai_score
 
-    if my_list:
-        k_pole = copy.deepcopy(field)
-        for ((selected_piece_x, selected_piece_y), (target_x, target_y)) in my_list:
-            t_list = move(0, selected_piece_x, selected_piece_y, target_x, target_y)
-            if t_list:  
-                evaluate_all_moves(tur, (n_list + ((selected_piece_x, selected_piece_y),)), t_list, alpha, beta)
+    # 如果没有给出可能的移动，那么获取电脑的所有可能的移动
+    if not possible_moves:
+        possible_moves = get_computer_possible_moves()
+
+    # 如果有可能的移动
+    if possible_moves:
+        # 保存当前的棋盘状态
+        original_field = copy.deepcopy(field)
+
+        # 遍历所有可能的移动
+        for ((selected_piece_x, selected_piece_y), (target_x, target_y)) in possible_moves:
+            # 执行移动
+            next_moves = move(0, selected_piece_x, selected_piece_y, target_x, target_y)
+
+            # 如果还有可能的移动
+            if next_moves:
+                # 递归调用这个函数
+                evaluate_all_moves(turn, (move_sequence + ((selected_piece_x, selected_piece_y),)), next_moves, alpha, beta)
             else:
-                check_hi(tur, [], alpha, beta)
-                if tur == 1:
-                    t_rez = ai_score / player_score
+                # 检查人类玩家的所有可能的移动
+                check_human_moves(turn, [], alpha, beta)
+                # 如果是电脑的回合
+                if turn == 1:
+                    # 计算得分比例
+                    score_ratio = ai_score / player_score
+
+                    # 如果没有可能的移动
                     if not possible_moves_list:
-                        possible_moves_list = (n_list + ((selected_piece_x, selected_piece_y), (target_x, target_y)),)
-                        l_rez = t_rez  
-                        alpha = max(alpha, t_rez)
+                        # 保存当前的移动序列和得分比例
+                        possible_moves_list = (move_sequence + ((selected_piece_x, selected_piece_y), (target_x, target_y)),)
+                        best_score = score_ratio
+                        alpha = max(alpha, score_ratio)
                     else:
-                        if t_rez == l_rez:
-                            possible_moves_list = possible_moves_list + (n_list + ((selected_piece_x, selected_piece_y), (target_x, target_y)),)
-                        if t_rez > l_rez:
+                        # 如果得分比例等于最佳得分
+                        if score_ratio == best_score:
+                            # 添加当前的移动序列到可能的移动列表
+                            possible_moves_list = possible_moves_list + (move_sequence + ((selected_piece_x, selected_piece_y), (target_x, target_y)),)
+                        # 如果得分比例大于最佳得分
+                        if score_ratio > best_score:
+                            # 清空可能的移动列表
                             possible_moves_list = ()
-                            possible_moves_list = (n_list + ((selected_piece_x, selected_piece_y), (target_x, target_y)),)
-                            l_rez = t_rez  
-                            alpha = max(alpha, t_rez)
+                            # 保存当前的移动序列和得分比例
+                            possible_moves_list = (move_sequence + ((selected_piece_x, selected_piece_y), (target_x, target_y)),)
+                            best_score = score_ratio
+                            alpha = max(alpha, score_ratio)
+
+                    # 重置电脑和玩家的得分
                     ai_score = 0
                     player_score = 0
 
-            field = copy.deepcopy(k_pole)  
-            if beta <= alpha:
-                break
-    else: 
-        computer_score, player_score = scan_board()
-        ai_score += (computer_score - player_score)
-        player_score += 1
+                    # 恢复原始的棋盘状态
+                    field = copy.deepcopy(original_field)
+
+                    # 如果beta小于或等于alpha，那么停止搜索
+                    if beta <= alpha:
+                        break
+                else:
+                    # 计算电脑和玩家的得分
+                    computer_score, player_score = scan_board()
+                    # 更新电脑的得分
+                    ai_score += (computer_score - player_score)
+                    # 更新玩家的得分
+                    player_score += 1
+
+
 
 # get_human_possible_moves函数用于获取人类玩家的所有可能的移动
 def get_human_possible_moves():
     # 首先尝试获取所有可以吃掉对手棋子的移动
-    my_list = check_moves_i1([])  
+    my_list = check_moves_i1([])
     # 如果没有可以吃掉对手棋子的移动，那么获取所有普通的移动
     if not my_list:
         my_list = check_moves_i2([])  # здесь проверяем оставшиеся ходы
     return my_list
 
-# check_hi函数用于评估人类玩家的所有可能的移动
-def check_hi(tur, my_list, alpha, beta):
+# check_human_moves函数用于评估人类玩家的所有可能的移动
+def check_human_moves(tur, my_list, alpha, beta):
     global field, player_score, ai_score
     global game_state
     if not my_list:
         my_list = get_human_possible_moves()
 
-    if my_list:  
+    if my_list:
         k_pole = copy.deepcopy(field)
         for ((selected_piece_x, selected_piece_y), (target_x, target_y)) in my_list:
             t_list = move(0, selected_piece_x, selected_piece_y, target_x, target_y)
-            if t_list:  
-                check_hi(tur, t_list, alpha, beta)
+            if t_list:
+                check_human_moves(tur, t_list, alpha, beta)
             else:
                 if tur < game_state:
                     evaluate_all_moves(tur + 1, (), [], alpha, beta)
@@ -382,10 +453,10 @@ def check_hi(tur, my_list, alpha, beta):
                     player_score += 1
                     beta = min(beta, ai_score / player_score)
 
-            field = copy.deepcopy(k_pole)  
+            field = copy.deepcopy(k_pole)
             if beta <= alpha:
                 break
-    else:  
+    else:
         computer_score, player_score = scan_board()
         ai_score += (computer_score - player_score)
         player_score += 1
